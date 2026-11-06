@@ -35,7 +35,8 @@ def test_hhi_bounds(data):
     _, _, mats, ctry = data
     mm = risk.material_metrics(mats, ctry).set_index("material")
     assert ((mm["hhi"] >= 0) & (mm["hhi"] <= 1)).all()
-    assert mm.loc["gallium", "hhi"] == pytest.approx(0.98**2)
+    g = mats[(mats["material"] == "gallium") & (mats["country"] != "OTHER")]["share"]
+    assert mm.loc["gallium", "hhi"] == pytest.approx((g ** 2).sum())
 
 
 def test_safety_stock_zero_when_no_uncertainty(data):
