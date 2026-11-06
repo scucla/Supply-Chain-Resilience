@@ -1,6 +1,6 @@
 # UAS Supply Chain Resilience Planner
 
-**Recommendation (50 → 500 systems/month over 12 months):** At current risk levels the ramp delivers **90.6%** of 3,300 systems on time. Fund three supplier qualifications now: **graphite anode material, gallium nitride (GaN) power transistors, and rare-earth (NdFeB) magnets**. They cost about **$196k** and lift on-time delivery to **92.4%**, each returning 8–13× its cost in profit at risk. Two Chinese export-control suspensions covering these materials lapse on **10 and 27 November 2026**. Treating those deadlines as live risk lowers expected on-time delivery to **88.0%**. → **[One-page memo](docs/MEMO.md)**
+**Recommendation (50 → 500 systems/month over 12 months):** At current risk levels the ramp delivers **90.6%** of 3,300 systems on time. Fund three supplier qualifications now: **graphite anode material, gallium nitride (GaN) power transistors, and rare-earth (NdFeB) magnets**. They cost about **$196k** and lift on-time delivery to **92.4%**, each returning 8–13× its cost in profit at risk. Two Chinese export-control suspensions covering these materials lapse on **10 and 27 November 2026**. Treating those deadlines as live risk lowers expected on-time delivery to **88.0%**. → **[One-page memo](docs/MEMO.md)** · **[Live dashboard](https://supply-chain-resilience-dhrn2yt5vphhkappfxannjd.streamlit.app/)**
 
 > The bill of materials (BOM) is **illustrative**: a generic Group 2 small unmanned aircraft system assembled from public information. It does not represent any real product or company data. Material shares and policy dates are cited ([SOURCES.md](docs/SOURCES.md)). Outage rates and costs are explicit, documented assumptions.
 
@@ -16,7 +16,7 @@
 | `src/simulate.py` | How many systems will we actually ship? What fixes help? | Monte Carlo (2,000 futures): part-level outages **plus correlated country shocks**, propagated up the tree, with shipment slips, supplier catch-up and lot sizing. Each action gets a paired 95% confidence interval (common random numbers) and a bad-case score |
 | `src/optimize.py` | What should we fund with a given budget? | Greedy selection that **re-simulates after every pick** (benefits overlap, so they don't add up). Two objectives: average shortfall, or average of the worst 10% of futures. Efficient frontier |
 | `src/sensitivity.py` | Would the advice change if the assumptions are wrong? | 10 assumptions moved low/high with the same random draws. Tornado chart and recommendation-stability check |
-| `src/signals.py` | Is the risk rising right now? | Cited policy calendar (suspended controls nearing expiry), GDELT news volume, and a hook for external signals (e.g. Sentinel) |
+| `src/signals.py` | Is the risk rising right now? | Cited policy calendar (suspended controls nearing expiry), GDELT news volume, and United States export-control rule-making (Federal Register), refreshed daily by a scheduled GitHub job |
 | `app.py` | Interactive what-if | Streamlit dashboard, 8 tabs |
 
 ## Results
@@ -51,25 +51,24 @@ python run_analysis.py      # full analysis + optimizer; CSVs to outputs/, front
 python run_sensitivity.py   # tornado chart + stability table (~40 s)
 python run_signal.py        # today's live risk signal (needs internet for the news part)
 streamlit run app.py        # dashboard
-pytest -q                   # 17 tests
+pytest -q                   # tests
 ```
 
-### Plugging in an external signal (e.g. Sentinel)
+### Daily risk-signal refresh
 
-Any system can publish a multiplier on the China shock probability:
+`.github/workflows/refresh-signal.yml` runs `scripts/refresh_signal.py` every day at 14:17 UTC on GitHub's servers. Each run:
+
+1. Measures news volume on Chinese export controls for each exposed material (GDELT) against its usual level
+2. Counts China- and chip-related export-control rules from the US Bureau of Industry and Security (Federal Register) against their usual pace. US tightening is a leading indicator: China's December 2024 gallium ban was retaliation for US chip controls
+3. Writes the combined multiplier to `data/external_signal.json`, appends a row to `data/signal_history.csv`, and commits. Streamlit Cloud redeploys on the push, so the dashboard's live-signal toggle and history chart update automatically
+
+A failed fetch is logged but never overwrites the last good signal. Signals older than 14 days are ignored. You can also trigger a run by hand from the repository's **Actions** tab (**Refresh risk signal → Run workflow**).
+
+Any other model can publish its own multiplier the same way:
 
 ```bash
-python run_signal.py --publish CHN 1.8 --source sentinel
+python run_signal.py --publish CHN 1.8 --source my-model
 ```
-
-or, from Python:
-
-```python
-from src.signals import write_external
-write_external("CHN", 1.8, "sentinel")
-```
-
-This writes `data/external_signal.json`. When the dashboard's live-signal toggle is on, the multiplier replaces the news component.
 
 ## Assumptions and limitations
 
@@ -78,6 +77,7 @@ This writes `data/external_signal.json`. When the dashboard's live-signal toggle
 - Country risk scores are judgment calls with written rationale in `data/country_risk.csv`
 - Monthly time steps; no supplier capacity caps
 - The live-signal multiplier applies for the whole horizon even though deadlines are one-time events
+- The news and rule-making coefficients are simple documented choices, not fitted to past shocks
 - Greedy selection is a heuristic, not a proven optimum
 - Compliance output is a set of flags for review, not legal conclusions
 

@@ -187,8 +187,54 @@ def test_offline_and_external_override(tmp_path):
                                     external_path=tmp_path / "none.json")
     assert out["countries"]["CHN"]["multiplier"] == 1.0    # fails safe
     ext = tmp_path / "external_signal.json"
-    signals.write_external("CHN", 1.8, "sentinel", path=ext)
+    signals.write_external("CHN", 1.8, "my-model", path=ext, asof=date(2027, 2, 25))
     out = signals.escalation_signal({"gallium"}, {"CHN": 0.02}, asof=date(2027, 3, 1), fetch=offline,
                                     external_path=ext)
     assert out["countries"]["CHN"]["multiplier"] == pytest.approx(1.8)
-    assert "sentinel" in out["countries"]["CHN"]["other_source"]
+    assert "my-model" in out["countries"]["CHN"]["other_source"]
+    # A stale file (older than 14 days) is ignored
+    stale = signals.escalation_signal({"gallium"}, {"CHN": 0.02}, asof=date(2027, 4, 1), fetch=offline,
+                                      external_path=ext)
+    assert stale["countries"]["CHN"]["multiplier"] == 1.0
+
+
+
+def _fake_fedreg():
+    from datetime import date, timedelta
+    asof = date(2026, 11, 5)
+    rows = [{"title": "Entity List additions: China semiconductor firms", "publication_date": str(asof - timedelta(days=d)),
+             "html_url": "https://example.gov", "type": "Rule", "abstract": ""} for d in (3, 10, 20, 25)]
+    rows += [{"title": f"Advanced computing and semiconductor rule {i}", "publication_date":
+              str(asof - timedelta(days=40 + 30 * i)), "html_url": "x", "type": "Rule", "abstract": ""} for i in range(6)]
+    rows += [{"title": "Agency information collection: unrelated survey", "publication_date": str(asof - timedelta(days=5)),
+              "html_url": "x", "type": "Notice", "abstract": ""}]
+    return {"results": rows}
+
+
+def test_fedreg_parser_counts_relevant_rules_only():
+    from datetime import date
+    from src.signals import parse_fedreg
+    docs, recent, base = parse_fedreg(_fake_fedreg(), date(2026, 11, 5))
+    assert recent == 4                       # unrelated notice excluded
+    assert len(docs) == 10
+    assert 0 < base < recent                 # rule-making running above its usual pace
+
+
+def test_daily_refresh_writes_files_and_survives_outage(tmp_path):
+    from datetime import date
+    from src import signals
+    def fake(url, timeout):
+        return _fake_fedreg() if "federalregister" in url else _fake_gdelt(2, 4)   # news doubled
+    js, hist = tmp_path / "ext.json", tmp_path / "hist.csv"
+    out = signals.refresh(asof=date(2026, 11, 5), fetch=fake, out_json=js, history=hist)
+    assert js.exists() and hist.exists()
+    m = signals.load_external(js)["CHN"]["multiplier"]
+    assert 1.25 <= m <= 2.5                  # news ratio 2 adds 0.25; rule-making adds more
+    assert out["row"]["calendar_multiplier"] == 2.0
+    # A failed day must not overwrite yesterday's good signal, but is still logged
+    def down(url, timeout):
+        raise OSError("down")
+    signals.refresh(asof=date(2026, 11, 6), fetch=down, out_json=js, history=hist)
+    assert signals.load_external(js)["CHN"]["multiplier"] == m
+    h = pd.read_csv(hist)
+    assert len(h) == 2 and isinstance(h["errors"].iloc[-1], str) and "OSError" in h["errors"].iloc[-1]

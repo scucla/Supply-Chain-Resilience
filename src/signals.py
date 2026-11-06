@@ -16,10 +16,13 @@ three inputs into a single multiplier on that probability:
        ratio = recent / baseline
        news  = 1 + 0.25 x clip(average ratio - 1, 0, 4)
 
-3. External override (optional) - data/external_signal.json written by another
-   system (e.g. the Sentinel open-source intelligence pipeline):
-       {"CHN": {"multiplier": 1.8, "source": "sentinel", "asof": "2026-11-05"}}
-   If present it replaces the news component.
+3. Daily refresh (optional) - scripts/refresh_signal.py, run every day by a GitHub
+   Actions job, combines news volume with United States export-control rule-making
+   (Federal Register, Bureau of Industry and Security) and writes
+   data/external_signal.json plus a row in data/signal_history.csv:
+       {"CHN": {"multiplier": 1.3, "source": "daily refresh", "asof": "2026-11-05"}}
+   If the file is fresh (under 14 days old) it replaces the live news component.
+   Any other system can publish a multiplier the same way (write_external).
 
 multiplier = min(cap, calendar x news_or_external)      (cap = 3 by default)
 
@@ -38,6 +41,14 @@ import numpy as np
 import pandas as pd
 
 DATA = Path(__file__).resolve().parent.parent / "data"
+FEDREG = ("https://www.federalregister.gov/api/v1/documents.json?per_page=200&order=newest"
+          "&conditions%5Bagencies%5D%5B%5D=industry-and-security-bureau"
+          "&conditions%5Bpublication_date%5D%5Bgte%5D={since}"
+          "&fields%5B%5D=title&fields%5B%5D=publication_date&fields%5B%5D=html_url&fields%5B%5D=type"
+          "&fields%5B%5D=abstract")
+FEDREG_TERMS = ("china", "chinese", "semiconductor", "entity list", "advanced computing", "integrated circuit",
+                "critical mineral", "gallium", "germanium", "rare earth", "graphite", "hong kong", "macau")
+STALE_DAYS = 14
 GDELT = "https://api.gdeltproject.org/api/v2/doc/doc?query={q}&mode=timelinevolraw&format=json&timespan={span}"
 MATERIAL_TERMS = {
     "gallium": "gallium", "germanium": "germanium", "graphite": "graphite", "lithium": "lithium",
@@ -125,8 +136,10 @@ def escalation_signal(exposed_materials: set[str], base_p: dict[str, float], aso
     out = {"asof": asof.isoformat(), "lapses": lapses, "news": news, "countries": {}}
     for c, p in base_p.items():
         cal_mult = 1 + 0.5 * int((lapses["country"] == c).sum())
-        if c in external:
-            other_mult, source = float(external[c]["multiplier"]), f"external ({external[c].get('source', 'file')})"
+        fresh = c in external and (asof - date.fromisoformat(external[c].get("asof", "1970-01-01"))).days <= STALE_DAYS
+        if fresh:
+            other_mult = float(external[c]["multiplier"])
+            source = f"{external[c].get('source', 'file')}, {external[c].get('asof')}"
         elif use_news and len(news) and news["ratio"].notna().any():
             avg = float(news["ratio"].dropna().mean())
             other_mult, source = 1 + 0.25 * float(np.clip(avg - 1, 0, 4)), "news (GDELT)"
@@ -138,8 +151,67 @@ def escalation_signal(exposed_materials: set[str], base_p: dict[str, float], aso
     return out
 
 
-def write_external(country: str, multiplier: float, source: str, path: Path = DATA / "external_signal.json") -> None:
-    """Helper for other systems (e.g. Sentinel) to publish a multiplier."""
+def write_external(country: str, multiplier: float, source: str, path: Path = DATA / "external_signal.json",
+                   asof: date | None = None) -> None:
+    """Publish a multiplier (used by the daily refresh; any other system can call it too)."""
     data = load_external(path)
-    data[country] = {"multiplier": float(multiplier), "source": source, "asof": datetime.now(timezone.utc).date().isoformat()}
+    data[country] = {"multiplier": float(multiplier), "source": source,
+                     "asof": (asof or datetime.now(timezone.utc).date()).isoformat()}
     path.write_text(json.dumps(data, indent=2))
+
+
+
+# ---- United States rule-making (Federal Register) ---------------------------
+def parse_fedreg(payload: dict, asof: date, recent_days: int = 30) -> tuple[pd.DataFrame, float, float]:
+    """China/chip-related Bureau of Industry and Security documents: (table, recent count, baseline per 30 days)."""
+    docs = pd.DataFrame(payload.get("results") or [])
+    if docs.empty:
+        return docs, 0.0, 0.0
+    text = (docs["title"].fillna("") + " " + docs.get("abstract", pd.Series("", index=docs.index)).fillna("")).str.lower()
+    docs = docs[text.str.contains("|".join(FEDREG_TERMS), regex=True)].copy()
+    docs["publication_date"] = pd.to_datetime(docs["publication_date"]).dt.date
+    cutoff = asof - timedelta(days=recent_days)
+    recent = float((docs["publication_date"] > cutoff).sum())
+    prior = docs[docs["publication_date"] <= cutoff]
+    span = (cutoff - min(prior["publication_date"].min(), cutoff - timedelta(days=180))).days if len(prior) else 180
+    baseline = len(prior) / max(span, 1) * recent_days
+    return docs, recent, baseline
+
+
+def refresh(asof: date | None = None, fetch=_get_json, materials: set[str] | None = None,
+            out_json: Path = DATA / "external_signal.json", history: Path = DATA / "signal_history.csv") -> dict:
+    """Daily job: combine news and rule-making into one multiplier and record it.
+
+    other = 1 + 0.25 x clip(news ratio - 1, 0, 4) + 0.25 x clip(rule-making ratio - 1, 0, 4), capped at 2.5
+    (calendar effects are added later by escalation_signal, so they are not double counted here).
+    """
+    asof = asof or date.today()
+    materials = materials or {"gallium", "germanium", "graphite", "lithium", "ndfeb_magnets", "advanced_logic"}
+    news = news_ratios(sorted(materials), fetch=fetch)
+    news_ratio = float(news["ratio"].dropna().mean()) if news["ratio"].notna().any() else np.nan
+    try:
+        docs, fr_recent, fr_base = parse_fedreg(fetch(FEDREG.format(since=(asof - timedelta(days=210)).isoformat()),
+                                                      10.0), asof)
+        fr_ratio = fr_recent / fr_base if fr_base > 0 else (1.0 if fr_recent == 0 else 4.0)
+        fr_error = ""
+    except Exception as e:
+        docs, fr_recent, fr_base, fr_ratio, fr_error = pd.DataFrame(), np.nan, np.nan, np.nan, type(e).__name__
+
+    parts = [0.25 * float(np.clip(x - 1, 0, 4)) for x in (news_ratio, fr_ratio) if not np.isnan(x)]
+    ok = bool(parts)
+    other = float(min(2.5, 1 + sum(parts))) if ok else 1.0
+    cal = escalation_signal(materials, {"CHN": 0.02}, asof=asof, use_news=False,
+                            external_path=Path("/nonexistent"))["countries"]["CHN"]
+    row = {"date": asof.isoformat(), "news_ratio": news_ratio, "rulemaking_recent_30d": fr_recent,
+           "rulemaking_baseline_30d": fr_base, "rulemaking_ratio": fr_ratio, "news_and_rules_multiplier": other,
+           "calendar_multiplier": cal["calendar_multiplier"],
+           "total_multiplier": min(3.0, other * cal["calendar_multiplier"]),
+           "adjusted_p_month": 0.02 * min(3.0, other * cal["calendar_multiplier"]),
+           "errors": ";".join(sorted(set(news["error"].replace("", np.nan).dropna()) | ({fr_error} - {""})))}
+    if ok:  # never overwrite a good signal with a failed fetch
+        write_external("CHN", other, "daily refresh (news + Federal Register)", path=out_json, asof=asof)
+    hist = pd.read_csv(history) if history.exists() else pd.DataFrame()
+    hist = pd.concat([hist[hist.get("date", pd.Series(dtype=str)) != row["date"]] if len(hist) else hist,
+                      pd.DataFrame([row])], ignore_index=True)
+    hist.to_csv(history, index=False)
+    return {"row": row, "news": news, "rules": docs}

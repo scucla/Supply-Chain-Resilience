@@ -2,8 +2,8 @@
 
     python run_signal.py                         # show today's signal (calendar + news)
     python run_signal.py --asof 2026-11-05       # as of a given date
-    python run_signal.py --publish CHN 1.8 --source sentinel
-                                                 # write data/external_signal.json (how Sentinel plugs in)
+    python run_signal.py --publish CHN 1.8 --source my-model
+                                                 # write data/external_signal.json (how any other model plugs in)
 """
 import argparse
 from datetime import date

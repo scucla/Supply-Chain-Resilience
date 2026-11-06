@@ -30,7 +30,8 @@ with st.sidebar:
     st.header("Live risk signal")
     live = st.toggle("Adjust China shock risk for policy deadlines and news", value=False,
                      help="Uses data/policy_calendar.csv (offline) plus GDELT news volume (online). "
-                          "If data/external_signal.json exists (e.g. written by Sentinel) it replaces the news part.")
+                          "A daily GitHub job also refreshes news + US rule-making into data/external_signal.json, "
+                          "which replaces the live news part when under 14 days old.")
     st.header("Simulation")
     n_sims = st.select_slider("Simulations", [500, 1000, 2000, 5000], 2000)
     surge = st.slider("Supplier catch-up capacity", 0.0, 1.0, 0.25, 0.05)
@@ -79,6 +80,15 @@ with tabs[0]:
         if len(sig["news"]):
             with st.expander("News volume by material"):
                 st.dataframe(sig["news"].round(2), width="stretch", hide_index=True)
+        from pathlib import Path as _P
+        hist_path = _P(__file__).parent / "data" / "signal_history.csv"
+        if hist_path.exists():
+            hist = pd.read_csv(hist_path)
+            with st.expander(f"Daily signal history ({len(hist)} days, refreshed by a scheduled GitHub job)"):
+                st.plotly_chart(px.line(hist, x="date", y=["calendar_multiplier", "news_and_rules_multiplier",
+                                                           "total_multiplier"], markers=True,
+                                        title="China shock-probability multiplier"), width="stretch")
+                st.dataframe(hist.round(2), width="stretch", hide_index=True)
     if not m.empty:
         top = m.iloc[0]
         best = r["portfolios"][-1]
