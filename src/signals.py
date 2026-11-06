@@ -101,10 +101,16 @@ def parse_gdelt_timeline(payload: dict, recent_days: int = 30) -> tuple[float, f
     return recent, baseline
 
 
-def news_ratios(materials: list[str], timeout: float = 8.0, fetch=_get_json) -> pd.DataFrame:
-    """Recent-vs-baseline news volume per material. Network errors are returned, not raised."""
+def news_ratios(materials: list[str], timeout: float = 20.0, fetch=_get_json, pause: float = 0.0) -> pd.DataFrame:
+    """Recent-vs-baseline news volume per material. Network errors are returned, not raised.
+
+    GDELT asks for at most one request every 5 seconds; the daily job passes pause=6.
+    """
+    import time
     rows = []
-    for m in materials:
+    for k, m in enumerate(materials):
+        if pause and k:
+            time.sleep(pause)
         q = quote(f'"export control" China {MATERIAL_TERMS.get(m, m)}')
         try:
             recent, base = parse_gdelt_timeline(fetch(GDELT.format(q=q, span="210d"), timeout))
@@ -112,7 +118,7 @@ def news_ratios(materials: list[str], timeout: float = 8.0, fetch=_get_json) -> 
             rows.append({"material": m, "recent_30d": recent, "baseline_30d": base, "ratio": ratio, "error": ""})
         except Exception as e:  # offline, blocked, rate-limited, bad payload
             rows.append({"material": m, "recent_30d": np.nan, "baseline_30d": np.nan, "ratio": np.nan,
-                         "error": type(e).__name__})
+                         "error": f"{type(e).__name__}: {str(e)[:120]}"})
     return pd.DataFrame(rows)
 
 
@@ -168,7 +174,8 @@ def parse_fedreg(payload: dict, asof: date, recent_days: int = 30) -> tuple[pd.D
     if docs.empty:
         return docs, 0.0, 0.0
     text = (docs["title"].fillna("") + " " + docs.get("abstract", pd.Series("", index=docs.index)).fillna("")).str.lower()
-    docs = docs[text.str.contains("|".join(FEDREG_TERMS), regex=True)].copy()
+    paperwork = docs["title"].fillna("").str.lower().str.startswith("agency information collection")
+    docs = docs[text.str.contains("|".join(FEDREG_TERMS), regex=True) & ~paperwork].copy()
     docs["publication_date"] = pd.to_datetime(docs["publication_date"]).dt.date
     cutoff = asof - timedelta(days=recent_days)
     recent = float((docs["publication_date"] > cutoff).sum())
@@ -178,7 +185,7 @@ def parse_fedreg(payload: dict, asof: date, recent_days: int = 30) -> tuple[pd.D
     return docs, recent, baseline
 
 
-def refresh(asof: date | None = None, fetch=_get_json, materials: set[str] | None = None,
+def refresh(asof: date | None = None, fetch=_get_json, materials: set[str] | None = None, pause: float = 0.0,
             out_json: Path = DATA / "external_signal.json", history: Path = DATA / "signal_history.csv") -> dict:
     """Daily job: combine news and rule-making into one multiplier and record it.
 
@@ -187,7 +194,7 @@ def refresh(asof: date | None = None, fetch=_get_json, materials: set[str] | Non
     """
     asof = asof or date.today()
     materials = materials or {"gallium", "germanium", "graphite", "lithium", "ndfeb_magnets", "advanced_logic"}
-    news = news_ratios(sorted(materials), fetch=fetch)
+    news = news_ratios(sorted(materials), fetch=fetch, pause=pause)
     news_ratio = float(news["ratio"].dropna().mean()) if news["ratio"].notna().any() else np.nan
     try:
         docs, fr_recent, fr_base = parse_fedreg(fetch(FEDREG.format(since=(asof - timedelta(days=210)).isoformat()),
@@ -195,7 +202,7 @@ def refresh(asof: date | None = None, fetch=_get_json, materials: set[str] | Non
         fr_ratio = fr_recent / fr_base if fr_base > 0 else (1.0 if fr_recent == 0 else 4.0)
         fr_error = ""
     except Exception as e:
-        docs, fr_recent, fr_base, fr_ratio, fr_error = pd.DataFrame(), np.nan, np.nan, np.nan, type(e).__name__
+        docs, fr_recent, fr_base, fr_ratio, fr_error = pd.DataFrame(), np.nan, np.nan, np.nan, f"FederalRegister {type(e).__name__}"
 
     parts = [0.25 * float(np.clip(x - 1, 0, 4)) for x in (news_ratio, fr_ratio) if not np.isnan(x)]
     ok = bool(parts)
@@ -207,7 +214,7 @@ def refresh(asof: date | None = None, fetch=_get_json, materials: set[str] | Non
            "calendar_multiplier": cal["calendar_multiplier"],
            "total_multiplier": min(3.0, other * cal["calendar_multiplier"]),
            "adjusted_p_month": 0.02 * min(3.0, other * cal["calendar_multiplier"]),
-           "errors": ";".join(sorted(set(news["error"].replace("", np.nan).dropna()) | ({fr_error} - {""})))}
+           "errors": " | ".join(sorted(set(news["error"].replace("", np.nan).dropna()) | ({fr_error} - {""})))[:400]}
     if ok:  # never overwrite a good signal with a failed fetch
         write_external("CHN", other, "daily refresh (news + Federal Register)", path=out_json, asof=asof)
     hist = pd.read_csv(history) if history.exists() else pd.DataFrame()

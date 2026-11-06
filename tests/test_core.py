@@ -237,4 +237,4 @@ def test_daily_refresh_writes_files_and_survives_outage(tmp_path):
     signals.refresh(asof=date(2026, 11, 6), fetch=down, out_json=js, history=hist)
     assert signals.load_external(js)["CHN"]["multiplier"] == m
     h = pd.read_csv(hist)
-    assert len(h) == 2 and isinstance(h["errors"].iloc[-1], str) and "OSError" in h["errors"].iloc[-1]
+    assert len(h) == 2 and "OSError" in str(h["errors"].iloc[-1])
