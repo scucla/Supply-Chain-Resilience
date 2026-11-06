@@ -220,13 +220,30 @@ def test_fedreg_parser_counts_relevant_rules_only():
     assert 0 < base < recent                 # rule-making running above its usual pace
 
 
+def _fake_rss_factory(recent, older):
+    def fake(url, timeout):
+        n = recent if "after%3A2026-10-06" in url or "after:2026-10-06" in url else older
+        items = "".join(f"<item><title>a{i}</title></item>" for i in range(n))
+        return f"<rss><channel>{items}</channel></rss>"
+    return fake
+
+
+def test_google_news_ratio():
+    from datetime import date
+    from src.signals import gnews_ratios
+    out = gnews_ratios(["gallium"], date(2026, 11, 5), fetch_text=_fake_rss_factory(10, 5), pause=0)
+    assert out.loc[0, "recent_30d"] == 10 and out.loc[0, "baseline_30d"] == 5
+    assert out.loc[0, "ratio"] == pytest.approx(2.0)
+
+
 def test_daily_refresh_writes_files_and_survives_outage(tmp_path):
     from datetime import date
     from src import signals
     def fake(url, timeout):
         return _fake_fedreg() if "federalregister" in url else _fake_gdelt(2, 4)   # news doubled
     js, hist = tmp_path / "ext.json", tmp_path / "hist.csv"
-    out = signals.refresh(asof=date(2026, 11, 5), fetch=fake, out_json=js, history=hist)
+    out = signals.refresh(asof=date(2026, 11, 5), fetch=fake, fetch_text=_fake_rss_factory(10, 5),
+                          out_json=js, history=hist)
     assert js.exists() and hist.exists()
     m = signals.load_external(js)["CHN"]["multiplier"]
     assert 1.25 <= m <= 2.5                  # news ratio 2 adds 0.25; rule-making adds more
@@ -234,7 +251,7 @@ def test_daily_refresh_writes_files_and_survives_outage(tmp_path):
     # A failed day must not overwrite yesterday's good signal, but is still logged
     def down(url, timeout):
         raise OSError("down")
-    signals.refresh(asof=date(2026, 11, 6), fetch=down, out_json=js, history=hist)
+    signals.refresh(asof=date(2026, 11, 6), fetch=down, fetch_text=down, out_json=js, history=hist)
     assert signals.load_external(js)["CHN"]["multiplier"] == m
     h = pd.read_csv(hist)
     assert len(h) == 2 and "OSError" in str(h["errors"].iloc[-1])

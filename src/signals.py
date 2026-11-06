@@ -15,6 +15,8 @@ three inputs into a single multiplier on that probability:
    prior 180 days:
        ratio = recent / baseline
        news  = 1 + 0.25 x clip(average ratio - 1, 0, 4)
+   The daily refresh uses Google News search feeds (GDELT throttles cloud servers)
+   and falls back to GDELT.
 
 3. Daily refresh (optional) - scripts/refresh_signal.py, run every day by a GitHub
    Actions job, combines news volume with United States export-control rule-making
@@ -122,6 +124,53 @@ def news_ratios(materials: list[str], timeout: float = 20.0, fetch=_get_json, pa
     return pd.DataFrame(rows)
 
 
+# Google News search feeds: free, no key, and they accept after:/before: date operators.
+GNEWS = "https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
+
+
+def _get_text(url: str, timeout: float) -> str:
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0 (supply-chain-resilience research script)"})
+    with urlopen(req, timeout=timeout) as resp:      # noqa: S310 (fixed https host)
+        return resp.read().decode("utf-8", errors="replace")
+
+
+def count_rss_items(xml_text: str) -> int:
+    import xml.etree.ElementTree as ET
+    return len(ET.fromstring(xml_text).findall("./channel/item"))
+
+
+def gnews_ratios(materials: list[str], asof: date, fetch_text=_get_text, windows: int = 6,
+                 pause: float = 1.0, timeout: float = 20.0) -> pd.DataFrame:
+    """Articles matching '"export control" China <material>' in the last 30 days vs. the average of the
+    previous `windows` 30-day windows. Feeds return at most 100 items, so very busy windows saturate
+    (which understates spikes; noted in the output)."""
+    import time
+    rows = []
+    for m in materials:
+        term = MATERIAL_TERMS.get(m, m)
+        counts, err = [], ""
+        for w in range(windows + 1):
+            end = asof - timedelta(days=30 * w)
+            start = end - timedelta(days=30)
+            q = quote(f'"export control" China {term} after:{start.isoformat()} before:{end.isoformat()}')
+            try:
+                counts.append(count_rss_items(fetch_text(GNEWS.format(q=q), timeout)))
+            except Exception as e:
+                err = f"{type(e).__name__}: {str(e)[:120]}"
+                break
+            if pause:
+                time.sleep(pause)
+        if err or not counts:
+            rows.append({"material": m, "recent_30d": np.nan, "baseline_30d": np.nan, "ratio": np.nan,
+                         "saturated": False, "error": err or "no data"})
+            continue
+        recent, base = counts[0], float(np.mean(counts[1:])) if len(counts) > 1 else np.nan
+        ratio = recent / base if base and base > 0 else (np.nan if recent == 0 else 4.0)
+        rows.append({"material": m, "recent_30d": recent, "baseline_30d": base, "ratio": ratio,
+                     "saturated": max(counts) >= 100, "error": ""})
+    return pd.DataFrame(rows)
+
+
 # ---- 3. external override ----------------------------------------------------
 def load_external(path: Path = DATA / "external_signal.json") -> dict:
     if not path.exists():
@@ -137,13 +186,15 @@ def escalation_signal(exposed_materials: set[str], base_p: dict[str, float], aso
     cal = load_calendar()
     lapses = upcoming_lapses(cal, exposed_materials, asof, window_days)
     external = load_external(external_path)
-    news = news_ratios(sorted(exposed_materials & set(MATERIAL_TERMS)), fetch=fetch) if use_news else pd.DataFrame()
+    fresh_ext = {c for c, v in external.items()
+                 if (asof - date.fromisoformat(v.get("asof", "1970-01-01"))).days <= STALE_DAYS}
+    need_news = use_news and not (set(base_p) <= fresh_ext)
+    news = news_ratios(sorted(exposed_materials & set(MATERIAL_TERMS)), fetch=fetch) if need_news else pd.DataFrame()
 
     out = {"asof": asof.isoformat(), "lapses": lapses, "news": news, "countries": {}}
     for c, p in base_p.items():
         cal_mult = 1 + 0.5 * int((lapses["country"] == c).sum())
-        fresh = c in external and (asof - date.fromisoformat(external[c].get("asof", "1970-01-01"))).days <= STALE_DAYS
-        if fresh:
+        if c in fresh_ext:
             other_mult = float(external[c]["multiplier"])
             source = f"{external[c].get('source', 'file')}, {external[c].get('asof')}"
         elif use_news and len(news) and news["ratio"].notna().any():
@@ -186,6 +237,7 @@ def parse_fedreg(payload: dict, asof: date, recent_days: int = 30) -> tuple[pd.D
 
 
 def refresh(asof: date | None = None, fetch=_get_json, materials: set[str] | None = None, pause: float = 0.0,
+            fetch_text=_get_text,
             out_json: Path = DATA / "external_signal.json", history: Path = DATA / "signal_history.csv") -> dict:
     """Daily job: combine news and rule-making into one multiplier and record it.
 
@@ -194,7 +246,9 @@ def refresh(asof: date | None = None, fetch=_get_json, materials: set[str] | Non
     """
     asof = asof or date.today()
     materials = materials or {"gallium", "germanium", "graphite", "lithium", "ndfeb_magnets", "advanced_logic"}
-    news = news_ratios(sorted(materials), fetch=fetch, pause=pause)
+    news = gnews_ratios(sorted(materials), asof, fetch_text=fetch_text, pause=min(pause, 1.0))
+    if not news["ratio"].notna().any():          # fall back to GDELT
+        news = news_ratios(sorted(materials), fetch=fetch, pause=pause)
     news_ratio = float(news["ratio"].dropna().mean()) if news["ratio"].notna().any() else np.nan
     try:
         docs, fr_recent, fr_base = parse_fedreg(fetch(FEDREG.format(since=(asof - timedelta(days=210)).isoformat()),
