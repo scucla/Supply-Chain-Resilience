@@ -27,6 +27,9 @@ def main() -> None:
     for k, v in r["sim_summary"].items():
         print(f"  {k:22s} {v:,.3f}")
 
+    print("\n== Correlated shocks: expected shortfall with vs. without a country escalation ==")
+    print(r["conditional"].round(1).to_string(index=False))
+
     print("\n== Which parts actually stopped the line ==")
     attr = r["attribution"].merge(r["parts"][["part_id", "part_name"]])
     print(attr.head(8).round(3).to_string(index=False))
@@ -35,6 +38,10 @@ def main() -> None:
     m = r["mitigations"]
     print(m[["risk_part", "action", "shortfall_avoided", "ci95_low", "ci95_high", "cost_usd", "units_avoided_per_100k"]]
           .head(10).round(1).to_string(index=False))
+
+    print("\n== Ranked for the bad case (benefit if China escalates) ==")
+    print(m.sort_values("avoided_if_CHN_shock", ascending=False)[["risk_part", "action", "shortfall_avoided",
+          "avoided_if_CHN_shock", "cost_usd"]].head(6).round(1).to_string(index=False))
 
     print("\n== Bundles (top-n actions applied together) ==")
     base_fill = r["sim_summary"]["fill_rate"]
@@ -52,7 +59,7 @@ def main() -> None:
     r["scored"].to_csv(OUT / "risk_scores.csv", index=False)
     r["orders"].to_csv(OUT / "order_schedule.csv", index=False)
     r["safety_stock"].to_csv(OUT / "safety_stock.csv", index=False)
-    m.drop(columns="_spec").to_csv(OUT / "mitigations.csv", index=False)
+    m.drop(columns="_specs").to_csv(OUT / "mitigations.csv", index=False)
     r["requirements"].to_csv(OUT / "gross_requirements.csv")
     print(f"\nCSVs written to {OUT}/")
 

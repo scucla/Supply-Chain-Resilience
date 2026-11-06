@@ -37,7 +37,7 @@ def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
 
     scored = risk.score_parts(parts, materials, countries, inp.weights)
     scored = scored.merge(spend.rename("horizon_spend_usd"), left_on="part_id", right_index=True)
-    params = risk.disruption_params(scored)
+    params = risk.disruption_params(scored, materials, countries)
 
     init_inv = ss.set_index("part_id")["safety_stock_units"]
     sim = Simulator(parts, params, plan, init_inv, inp.sim)
@@ -50,6 +50,7 @@ def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
         "compliance": risk.compliance_review(exploded, countries),
         "sim_summary": sim.summarize(base), "bands": sim.monthly_bands(base),
         "attribution": sim.binding_attribution(base), "shortfall_dist": pd.Series(base["shortfall"]),
+        "conditional": sim.conditional_summary(base),
     }
     if with_mitigations:
         m = sim.evaluate_mitigations(scored, inp.top_k_mitigations)

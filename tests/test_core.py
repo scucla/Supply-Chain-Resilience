@@ -58,3 +58,30 @@ def test_no_risk_means_no_shortfall(data):
 def test_more_coverage_never_hurts():
     r = run(Inputs(sim=SimConfig(n_sims=300)), with_mitigations=True)
     assert (r["mitigations"]["shortfall_avoided"] >= -1e-9).all()
+
+
+def test_alternates_do_not_protect_against_material_shock(data):
+    """A country shock on a part's key material can't be fixed by adding suppliers."""
+    _, parts, mats, ctry = data
+    plan = demand.production_plan(100, 100, 12)
+    scored = risk.score_parts(parts, mats, ctry)
+    params = risk.disruption_params(scored, mats, ctry).assign(p_month=0.0, slip_p=0.0)
+    cfg = SimConfig(n_sims=300, escalation_p_month={"CHN": 0.3})
+    sim = Simulator(parts, params, plan, pd.Series(dtype=float), cfg)
+    base = sim.run()["shortfall"].mean()
+    assert base > 0                                            # China shocks alone cause shortfall
+    # Give every China-supplied part 100% backup coverage: material losses remain
+    fix_suppliers = [("coverage", p, 1.0) for p in params.loc[params["direct_CHN"] == 1, "part_id"]]
+    assert sim.run(fix_suppliers)["shortfall"].mean() > 0
+    # Also remove all China material exposure: shortfall disappears
+    fix_all = fix_suppliers + [("material", p, "CHN") for p in params.loc[params["matshare_CHN"] > 0, "part_id"]]
+    assert sim.run(fix_all)["shortfall"].mean() == 0
+
+
+def test_independent_mode_ignores_country_shocks(data):
+    _, parts, mats, ctry = data
+    plan = demand.production_plan(100, 100, 12)
+    params = risk.disruption_params(risk.score_parts(parts, mats, ctry), mats, ctry).assign(p_month=0.0, slip_p=0.0)
+    sim = Simulator(parts, params, plan, pd.Series(dtype=float),
+                    SimConfig(n_sims=200, correlated=False, escalation_p_month={"CHN": 0.5}))
+    assert sim.run()["shortfall"].mean() == 0

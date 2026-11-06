@@ -72,11 +72,13 @@ def score_parts(parts: pd.DataFrame, materials: pd.DataFrame, countries: pd.Data
     return df.sort_values("risk_score", ascending=False).reset_index(drop=True)
 
 
-def disruption_params(scored: pd.DataFrame) -> pd.DataFrame:
+def disruption_params(scored: pd.DataFrame, materials: pd.DataFrame | None = None,
+                      countries: pd.DataFrame | None = None) -> pd.DataFrame:
     """Translate risk factors into simulation parameters (explicit assumptions).
 
-    p_month       : monthly probability a disruption starts = 0.2% + 1.5%*geo + 1%*HHI
-                    (a China-sourced gallium part ~2.5%/month ~ 26%/yr; a US part ~0.3%/month)
+    p_month       : monthly probability a PART-LEVEL outage starts = 0.2% + 0.8%*geo + 0.5%*HHI
+                    (idiosyncratic: fires, quality escapes, supplier failure). Country-wide
+                    export-control shocks are modeled separately and are correlated across parts.
     mean_duration : mean disruption length in months = 1 + 3*HHI
                     (concentrated materials have nowhere else to go, so outages last longer)
     coverage      : fraction of supply alternates can cover during an outage
@@ -84,11 +86,17 @@ def disruption_params(scored: pd.DataFrame) -> pd.DataFrame:
                     P(LT > mu + 4.33 wks) = 1 - Phi(4.33 / sigma)
     """
     out = scored[["part_id"]].copy()
-    out["p_month"] = 0.002 + 0.015 * scored["f_geopolitical"] + 0.01 * scored["hhi"]
+    out["p_month"] = 0.002 + 0.008 * scored["f_geopolitical"] + 0.005 * scored["hhi"]
     out["mean_duration"] = 1 + 3 * scored["hhi"]
     out["coverage"] = scored["alt_suppliers_qualified"].map(lambda n: 0.0 if n == 0 else 0.5 if n == 1 else 0.8)
     sd = scored["lead_time_sd_wks"].clip(lower=1e-6).to_numpy()
     out["slip_p"] = 1 - np.vectorize(NormalDist().cdf)((52 / 12) / sd)
+    # Exposure to each country of concern, for correlated escalation shocks
+    if materials is not None and countries is not None:
+        for c in countries.loc[countries["country_of_concern"] == 1, "country"]:
+            share = materials[materials["country"] == c].set_index("material")["share"]
+            out[f"matshare_{c}"] = scored["key_material"].map(share).fillna(0.0).to_numpy()
+            out[f"direct_{c}"] = (scored["supplier_country"] == c).astype(float).to_numpy()
     return out
 
 

@@ -125,6 +125,10 @@ with tabs[4]:
     ])
     fig.update_layout(title="Units built per month across simulations", xaxis_title="month")
     st.plotly_chart(fig, width="stretch")
+    st.subheader("Correlated shocks: what a country escalation does")
+    st.caption("One escalation event hits every part sourced from that country AND every part whose key material it "
+               "produces, at the same time. A second supplier does not help with the material loss.")
+    st.dataframe(r["conditional"].round(3), hide_index=True)
     st.plotly_chart(px.histogram(r["shortfall_dist"], nbins=60, title="Distribution of end-of-horizon shortfall")
                     .update_layout(showlegend=False, xaxis_title="units short"), width="stretch")
     attr = r["attribution"].assign(part_name=lambda d: d["part_id"].map(names))
@@ -138,10 +142,17 @@ with tabs[5]:
     if m.empty:
         st.info("No mitigations evaluated.")
     else:
-        show = m.drop(columns="_spec").assign(part_name=lambda d: d["risk_part"].map(names))
+        show = m.drop(columns="_specs").assign(part_name=lambda d: d["risk_part"].map(names))
         st.plotly_chart(px.scatter(show, x="cost_usd", y="shortfall_avoided", color="action", hover_name="part_name",
                                    error_y=show["ci95_high"] - show["shortfall_avoided"],
                                    title="Cost vs. shortfall avoided (with 95% CI)"), width="stretch")
         st.dataframe(show.round(1), width="stretch", hide_index=True)
+        if "avoided_if_CHN_shock" in show:
+            st.subheader("Ranked for the bad case: benefit if China escalates")
+            st.caption("Average-case and tail-case rankings differ. Buffers and assembly-wide de-risking matter most "
+                       "when a correlated shock hits.")
+            st.dataframe(show.sort_values("avoided_if_CHN_shock", ascending=False)
+                         [["risk_part", "part_name", "action", "shortfall_avoided", "avoided_if_CHN_shock", "cost_usd"]]
+                         .head(10).round(1), width="stretch", hide_index=True)
         st.subheader("Bundles (re-simulated together, since benefits are not additive)")
         st.dataframe(pd.DataFrame(r["portfolios"]).drop(columns="actions").round(3), hide_index=True)
