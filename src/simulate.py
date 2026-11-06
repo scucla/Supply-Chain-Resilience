@@ -71,7 +71,9 @@ class SimConfig:
     material_source_price_premium: float = 0.10  # non-Chinese material typically costs more
     carrying_rate: float = 0.25        # annual inventory holding cost (% of value)
     buffer_weeks: float = 6.0          # extra inventory for the "buffer" mitigation
-    margin_per_unit: float = 0.0       # profit lost per system not delivered (0 = don't value)
+    # Profit per system not delivered within the plan (0 = don't value in dollars). Systems short at the
+    # end of the horizon are LATE, not necessarily lost, so this is "profit at risk", an upper bound.
+    margin_per_unit: float = 0.0
 
 
 def _descendants(kids: dict[str, list[str]], pid: str) -> list[str]:
@@ -255,8 +257,8 @@ class Simulator:
             "fill_rate": float(1 - sf.mean() / planned),
         }
         if self.cfg.margin_per_unit:
-            out["expected_lost_profit_usd"] = out["expected_shortfall"] * self.cfg.margin_per_unit
-            out["lost_profit_p95_usd"] = out["shortfall_p95"] * self.cfg.margin_per_unit
+            out["expected_profit_at_risk_usd"] = out["expected_shortfall"] * self.cfg.margin_per_unit
+            out["profit_at_risk_p95_usd"] = out["shortfall_p95"] * self.cfg.margin_per_unit
         return out
 
     def binding_attribution(self, res: dict) -> pd.DataFrame:

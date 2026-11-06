@@ -106,3 +106,12 @@ def test_lot_rounding_in_order_schedule(data):
     assert (sched["qty"] % 25 == 0).all()                    # whole lots only
     assert sched["qty"].sum() >= 60                          # covers total need
     assert sched["qty"].sum() - 60 < 25                      # never more than one lot of excess
+
+
+def test_dollar_valuation_is_consistent():
+    r = run(Inputs(sim=SimConfig(n_sims=300)))
+    ue, S, m = r["unit_economics"], r["sim_summary"], r["mitigations"]
+    assert ue["margin_per_unit_usd"] == pytest.approx(ue["unit_price_usd"] - ue["material_cost_usd"]
+                                                      - ue["conversion_cost_usd"])
+    assert S["expected_profit_at_risk_usd"] == pytest.approx(S["expected_shortfall"] * ue["margin_per_unit_usd"])
+    assert np.allclose(m["net_benefit_usd"], m["shortfall_avoided"] * ue["margin_per_unit_usd"] - m["cost_usd"])

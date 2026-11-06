@@ -23,6 +23,8 @@ class Inputs:
     top_k_mitigations: int = 10
     order_cost: float = 400.0          # $ per purchase order (admin, inspection, fixed freight) - assumption
     use_lot_sizing: bool = True        # order in max(EOQ, MOQ) lots instead of exactly what is needed
+    unit_price_usd: float = 80_000     # illustrative sale price per system - assumption
+    conversion_cost_usd: float = 15_000  # assembly labor, test, overhead per system - assumption
 
 
 def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
@@ -44,12 +46,17 @@ def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
     params = risk.disruption_params(scored, materials, countries)
 
     init_inv = ss.set_index("part_id")["safety_stock_units"]
+    material_cost = float((parts["extended_qty"] * parts["unit_cost_usd"]).where(parts["direct_buy"], 0).sum())
+    margin = inp.unit_price_usd - material_cost - inp.conversion_cost_usd
+    inp.sim.margin_per_unit = max(margin, 0.0)
     sim = Simulator(parts, params, plan, init_inv, inp.sim, lots=lot_map)
     base = sim.run()
 
     out = {
         "exploded": exploded, "parts": parts, "plan": plan, "requirements": reqs,
         "safety_stock": ss, "orders": orders, "lots": lots, "scored": scored, "params": params,
+        "unit_economics": {"unit_price_usd": inp.unit_price_usd, "material_cost_usd": material_cost,
+                           "conversion_cost_usd": inp.conversion_cost_usd, "margin_per_unit_usd": margin},
         "materials": risk.material_metrics(materials, countries),
         "compliance": risk.compliance_review(exploded, countries),
         "sim_summary": sim.summarize(base), "bands": sim.monthly_bands(base),

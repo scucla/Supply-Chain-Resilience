@@ -27,6 +27,10 @@ def main() -> None:
     for k, v in r["sim_summary"].items():
         print(f"  {k:22s} {v:,.3f}")
 
+    ue = r["unit_economics"]
+    print(f"\n== Unit economics (illustrative) ==\n  price ${ue['unit_price_usd']:,.0f} - parts ${ue['material_cost_usd']:,.0f}"
+          f" - assembly ${ue['conversion_cost_usd']:,.0f} = profit ${ue['margin_per_unit_usd']:,.0f} per system")
+
     print("\n== Correlated shocks: expected shortfall with vs. without a country escalation ==")
     print(r["conditional"].round(1).to_string(index=False))
 
@@ -36,7 +40,7 @@ def main() -> None:
 
     print("\n== Ranked mitigations ==")
     m = r["mitigations"]
-    print(m[["risk_part", "action", "shortfall_avoided", "ci95_low", "ci95_high", "cost_usd", "units_avoided_per_100k"]]
+    print(m[["risk_part", "action", "shortfall_avoided", "ci95_low", "ci95_high", "cost_usd", "net_benefit_usd", "return_on_cost"]]
           .head(10).round(1).to_string(index=False))
 
     print("\n== Ranked for the bad case (benefit if China escalates) ==")

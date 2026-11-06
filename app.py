@@ -24,6 +24,9 @@ with st.sidebar:
     st.header("Risk weights")
     w = {k: st.slider(k, 0.0, 1.0, v, 0.05) for k, v in
          {"concentration": 0.30, "geopolitical": 0.30, "lead_time": 0.20, "single_source": 0.20}.items()}
+    st.header("Unit economics")
+    price = st.number_input("Sale price per system ($)", 10_000, 500_000, 80_000, 5_000)
+    conv = st.number_input("Assembly + overhead per system ($)", 0, 200_000, 15_000, 1_000)
     st.header("Simulation")
     n_sims = st.select_slider("Simulations", [500, 1000, 2000, 5000], 2000)
     surge = st.slider("Supplier catch-up capacity", 0.0, 1.0, 0.25, 0.05)
@@ -31,12 +34,13 @@ with st.sidebar:
 
 
 @st.cache_resource(show_spinner="Running Monte Carlo...")
-def cached_run(start, end, months, shape, sl, cv, w_items, n_sims, surge, buffer_wks):
+def cached_run(start, end, months, shape, sl, cv, w_items, n_sims, surge, buffer_wks, price, conv):
     cfg = SimConfig(n_sims=n_sims, surge=surge, buffer_weeks=buffer_wks)
-    return run(Inputs(start, end, months, shape, sl, cv, dict(w_items), cfg))
+    return run(Inputs(start, end, months, shape, sl, cv, dict(w_items), cfg,
+                      unit_price_usd=price, conversion_cost_usd=conv))
 
 
-r = cached_run(start, end, months, shape, sl, cv, tuple(w.items()), n_sims, surge, buffer_wks)
+r = cached_run(start, end, months, shape, sl, cv, tuple(w.items()), n_sims, surge, buffer_wks, price, conv)
 S, scored, m = r["sim_summary"], r["scored"], r["mitigations"]
 names = r["parts"].set_index("part_id")["part_name"]
 
@@ -49,6 +53,13 @@ with tabs[0]:
     c[1].metric("Expected fill rate", f"{S['fill_rate']:.1%}")
     c[2].metric("P(any shortfall)", f"{S['p_any_shortfall']:.0%}")
     c[3].metric("Shortfall P95 (units)", f"{S['shortfall_p95']:,.0f}")
+    if "expected_profit_at_risk_usd" in S:
+        c = st.columns(4)
+        c[0].metric("Profit per system", f"${r['unit_economics']['margin_per_unit_usd']:,.0f}")
+        c[1].metric("Expected profit at risk", f"${S['expected_profit_at_risk_usd'] / 1e6:,.1f}M")
+        c[2].metric("Profit at risk, worst 5%", f"${S['profit_at_risk_p95_usd'] / 1e6:,.1f}M")
+        st.caption("Profit at risk = systems not delivered within the plan × profit per system. Late systems may "
+                   "still ship later, so treat this as an upper bound.")
     if not m.empty:
         top = m.iloc[0]
         best = r["portfolios"][-1]
@@ -56,7 +67,8 @@ with tabs[0]:
         st.markdown(
             f"- **Highest-value action:** {top['action']} for **{top['risk_part']}** "
             f"({names[top['risk_part']]}). Avoids ~{top['shortfall_avoided']:.0f} units of shortfall "
-            f"(95% CI {top['ci95_low']:.0f} to {top['ci95_high']:.0f}) for ~${top['cost_usd']:,.0f}.\n"
+            f"(95% CI {top['ci95_low']:.0f} to {top['ci95_high']:.0f}) for ~${top['cost_usd']:,.0f}"
+            + (f", protecting ~${top['profit_protected_usd']:,.0f} of profit.\n" if "profit_protected_usd" in top else ".\n") +
             f"- **Top-{best['n']} bundle:** fill rate {S['fill_rate']:.1%} → {best['fill_rate']:.1%} "
             f"for ~${best['cost_usd']:,.0f}.\n"
             f"- **Compliance:** {int(scored['compliance_flag'].sum())} parts are sourced from a country of concern; "
