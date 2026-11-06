@@ -1,0 +1,16 @@
+country,geo_risk,country_of_concern,rationale
+CHN,0.90,1,Export controls on Ga/Ge/graphite/rare earths; US restrictions on Chinese-origin UAS components
+RUS,1.00,1,Sanctions; not a viable source
+TWN,0.60,0,Concentrated semiconductor capacity; cross-strait conflict tail risk
+KOR,0.25,0,Allied; some regional tail risk
+JPN,0.15,0,Allied; natural-disaster exposure
+MYS,0.35,0,Transshipment and logistics risk
+MEX,0.25,0,USMCA nearshore; border and logistics variability
+DEU,0.10,0,Allied
+CHE,0.10,0,Allied
+USA,0.05,0,Domestic
+CAN,0.05,0,Allied
+CHL,0.30,0,Resource nationalism and policy risk
+PER,0.35,0,Political instability affecting mining
+IND,0.30,0,Moderate
+OTHER,0.40,0,Fragmented or unknown sources; conservative default

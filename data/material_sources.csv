@@ -1,0 +1,33 @@
+material,country,share,source_note
+ndfeb_magnets,CHN,0.90,Approximate share of sintered NdFeB magnet output; verify against USGS MCS (Rare Earths) and DOE/IEA reports
+ndfeb_magnets,JPN,0.07,
+ndfeb_magnets,OTHER,0.03,
+gallium,CHN,0.98,Approximate primary gallium share; USGS MCS (Gallium)
+gallium,OTHER,0.02,
+germanium,CHN,0.68,Approximate refinery share; USGS MCS (Germanium)
+germanium,OTHER,0.32,
+lithium,CHN,0.65,Approximate refined lithium chemicals share; IEA Critical Minerals Outlook
+lithium,CHL,0.25,
+lithium,OTHER,0.10,
+graphite,CHN,0.93,Approximate battery-grade anode share; IEA / USGS MCS (Graphite)
+graphite,OTHER,0.07,
+carbon_fiber,JPN,0.45,Rough industry estimate of PAN carbon fiber capacity; replace with a cited source
+carbon_fiber,USA,0.20,
+carbon_fiber,CHN,0.15,
+carbon_fiber,KOR,0.10,
+carbon_fiber,OTHER,0.10,
+advanced_logic,TWN,0.90,Approximate share of leading-edge (<10nm) logic capacity; SIA/BCG reports
+advanced_logic,KOR,0.08,
+advanced_logic,OTHER,0.02,
+mature_logic,CHN,0.35,Approximate mature-node (>=28nm) capacity share; SIA/BCG reports
+mature_logic,TWN,0.30,
+mature_logic,OTHER,0.35,
+copper,CHL,0.24,Approximate mine production share; USGS MCS (Copper)
+copper,PER,0.11,
+copper,CHN,0.08,
+copper,OTHER,0.57,
+aluminum,CHN,0.58,Approximate primary aluminum share; USGS MCS (Aluminum)
+aluminum,IND,0.06,
+aluminum,RUS,0.05,
+aluminum,CAN,0.04,
+aluminum,OTHER,0.27,

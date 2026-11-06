@@ -1,0 +1,58 @@
+"""CLI: run the full analysis and write CSVs to outputs/.
+
+    python run_analysis.py
+"""
+from pathlib import Path
+
+import pandas as pd
+
+from src.pipeline import Inputs, run
+
+OUT = Path(__file__).parent / "outputs"
+
+
+def main() -> None:
+    OUT.mkdir(exist_ok=True)
+    r = run(Inputs())
+    pd.set_option("display.width", 160, "display.max_columns", 20)
+
+    print("\n== Production plan (units/month) ==")
+    print(r["plan"].to_frame().T.to_string())
+
+    print("\n== Top 10 supply risks ==")
+    cols = ["part_id", "part_name", "tier", "supplier_country", "key_material", "risk_score", "top_driver", "compliance_flag"]
+    print(r["scored"][cols].head(10).round(3).to_string(index=False))
+
+    print("\n== Simulation (baseline) ==")
+    for k, v in r["sim_summary"].items():
+        print(f"  {k:22s} {v:,.3f}")
+
+    print("\n== Which parts actually stopped the line ==")
+    attr = r["attribution"].merge(r["parts"][["part_id", "part_name"]])
+    print(attr.head(8).round(3).to_string(index=False))
+
+    print("\n== Ranked mitigations ==")
+    m = r["mitigations"]
+    print(m[["risk_part", "action", "shortfall_avoided", "ci95_low", "ci95_high", "cost_usd", "units_avoided_per_100k"]]
+          .head(10).round(1).to_string(index=False))
+
+    print("\n== Bundles (top-n actions applied together) ==")
+    base_fill = r["sim_summary"]["fill_rate"]
+    for pf in r["portfolios"]:
+        print(f"  top {pf['n']}: fill rate {base_fill:.1%} -> {pf['fill_rate']:.1%}, "
+              f"E[shortfall] {r['sim_summary']['expected_shortfall']:.0f} -> {pf['expected_shortfall']:.0f}, cost ${pf['cost_usd']:,.0f}")
+
+    print("\n== Order-now list (release month <= 0) ==")
+    late = r["orders"][r["orders"]["status"] != "planned"]
+    print(late.groupby("part_id")["qty"].sum().sort_values(ascending=False).head(10).to_string())
+
+    r["scored"].to_csv(OUT / "risk_scores.csv", index=False)
+    r["orders"].to_csv(OUT / "order_schedule.csv", index=False)
+    r["safety_stock"].to_csv(OUT / "safety_stock.csv", index=False)
+    m.drop(columns="_spec").to_csv(OUT / "mitigations.csv", index=False)
+    r["requirements"].to_csv(OUT / "gross_requirements.csv")
+    print(f"\nCSVs written to {OUT}/")
+
+
+if __name__ == "__main__":
+    main()
