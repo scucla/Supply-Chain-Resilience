@@ -21,6 +21,8 @@ class Inputs:
     weights: dict = field(default_factory=lambda: dict(risk.DEFAULT_WEIGHTS))
     sim: SimConfig = field(default_factory=SimConfig)
     top_k_mitigations: int = 10
+    order_cost: float = 400.0          # $ per purchase order (admin, inspection, fixed freight) - assumption
+    use_lot_sizing: bool = True        # order in max(EOQ, MOQ) lots instead of exactly what is needed
 
 
 def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
@@ -32,7 +34,9 @@ def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
     plan = demand.production_plan(inp.start_rate, inp.end_rate, inp.months, inp.ramp_shape)
     reqs = demand.gross_requirements(parts, plan)
     ss = demand.safety_stock(parts, plan, inp.service_level, inp.demand_cv)
-    orders = demand.order_schedule(parts, plan)
+    lots = demand.lot_sizing(parts, plan, inp.order_cost, inp.sim.carrying_rate)
+    lot_map = lots.set_index("part_id")["lot_size"] if inp.use_lot_sizing else None
+    orders = demand.order_schedule(parts, plan, lot_map)
     spend = demand.spend_by_part(parts, plan)
 
     scored = risk.score_parts(parts, materials, countries, inp.weights)
@@ -40,12 +44,12 @@ def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
     params = risk.disruption_params(scored, materials, countries)
 
     init_inv = ss.set_index("part_id")["safety_stock_units"]
-    sim = Simulator(parts, params, plan, init_inv, inp.sim)
+    sim = Simulator(parts, params, plan, init_inv, inp.sim, lots=lot_map)
     base = sim.run()
 
     out = {
         "exploded": exploded, "parts": parts, "plan": plan, "requirements": reqs,
-        "safety_stock": ss, "orders": orders, "scored": scored, "params": params,
+        "safety_stock": ss, "orders": orders, "lots": lots, "scored": scored, "params": params,
         "materials": risk.material_metrics(materials, countries),
         "compliance": risk.compliance_review(exploded, countries),
         "sim_summary": sim.summarize(base), "bands": sim.monthly_bands(base),

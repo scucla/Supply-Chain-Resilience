@@ -59,6 +59,7 @@ def main() -> None:
     r["scored"].to_csv(OUT / "risk_scores.csv", index=False)
     r["orders"].to_csv(OUT / "order_schedule.csv", index=False)
     r["safety_stock"].to_csv(OUT / "safety_stock.csv", index=False)
+    r["lots"].to_csv(OUT / "lot_sizing.csv", index=False)
     m.drop(columns="_specs").to_csv(OUT / "mitigations.csv", index=False)
     r["requirements"].to_csv(OUT / "gross_requirements.csv")
     print(f"\nCSVs written to {OUT}/")

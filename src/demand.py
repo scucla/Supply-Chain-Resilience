@@ -68,9 +68,11 @@ def safety_stock(parts: pd.DataFrame, plan: pd.Series, service_level: float = 0.
     return out
 
 
-def order_schedule(parts: pd.DataFrame, plan: pd.Series) -> pd.DataFrame:
+def order_schedule(parts: pd.DataFrame, plan: pd.Series, lots: pd.Series | None = None) -> pd.DataFrame:
     """Planned order releases: need in month t -> release in month t - LT.
 
+    If `lots` (part_id -> lot size) is given, each month's net need is rounded up to
+    whole lots and any excess carries into later months (so some months need no order).
     Release months <= 0 mean the order is already late relative to month 1 of
     the plan (the order-now list).
     """
@@ -78,10 +80,15 @@ def order_schedule(parts: pd.DataFrame, plan: pd.Series) -> pd.DataFrame:
     lt = lead_time_months(parts["lead_time_wks"]).to_numpy()
     rows = []
     for i, pid in enumerate(req.index):
+        lot = float(lots.get(pid, 1)) if lots is not None else 1.0
+        carry = 0.0
         for month, qty in req.loc[pid].items():
-            if qty > 0:
+            need = max(qty - carry, 0.0)
+            order = math.ceil(need / lot) * lot if need > 0 else 0.0
+            carry += order - qty
+            if order > 0:
                 rows.append({"part_id": pid, "need_month": month, "release_month": month - lt[i],
-                             "qty": int(math.ceil(qty))})
+                             "qty": int(order)})
     sched = pd.DataFrame(rows)
     sched["status"] = np.where(sched["release_month"] <= 0, "ORDER NOW / LATE", "planned")
     return sched
@@ -92,3 +99,48 @@ def spend_by_part(parts: pd.DataFrame, plan: pd.Series) -> pd.Series:
     spend = parts["extended_qty"] * plan.sum() * parts["unit_cost_usd"]
     spend = spend.where(parts["direct_buy"], 0.0)
     return pd.Series(spend.to_numpy(), index=parts["part_id"], name="horizon_spend_usd")
+
+
+def lot_sizing(parts: pd.DataFrame, plan: pd.Series, order_cost: float = 400.0,
+               carrying_rate: float = 0.25) -> pd.DataFrame:
+    """Economic order quantity vs. minimum order quantity, per part.
+
+    Economic order quantity (EOQ) balances the fixed cost of placing an order
+    against the cost of holding stock:
+
+        total cost(Q) = (D / Q) * S  +  (Q / 2) * H
+        d/dQ = 0  ->   Q* = sqrt(2 * D * S / H)
+
+    D : annual demand (units)  -- annualised from the plan
+    S : cost per order ($)     -- purchase-order admin, receiving inspection, fixed freight
+    H : holding cost per unit per year = unit cost * carrying rate
+
+    The supplier's minimum order quantity (MOQ) is a floor, so the lot we use is
+    max(EOQ, MOQ). We compare annual ordering + holding cost against ordering
+    one order per month for that month's need.
+    """
+    D = parts["extended_qty"].to_numpy() * plan.sum() * 12 / len(plan)
+    H = parts["unit_cost_usd"].to_numpy() * carrying_rate
+    with np.errstate(divide="ignore", invalid="ignore"):
+        eoq = np.sqrt(2 * D * order_cost / H)
+    moq = parts.get("moq", pd.Series(0, index=parts.index)).fillna(0).to_numpy().astype(float)
+    lot = np.ceil(np.maximum(eoq, moq))
+    monthly = D / 12
+
+    def annual_cost(q):
+        q = np.maximum(q, 1)
+        return D / q * order_cost + q / 2 * H
+
+    out = pd.DataFrame({
+        "part_id": parts["part_id"].to_numpy(),
+        "annual_demand": D,
+        "moq": moq,
+        "eoq": eoq,
+        "lot_size": lot,
+        "binding": np.where(moq > eoq, "MOQ", "EOQ"),
+        "months_of_supply_per_lot": lot / np.maximum(monthly, 1e-9),
+        "annual_cost_monthly_ordering": annual_cost(monthly),
+        "annual_cost_with_lot": annual_cost(lot),
+    })
+    out["annual_savings_vs_monthly_ordering"] = out["annual_cost_monthly_ordering"] - out["annual_cost_with_lot"]
+    return out

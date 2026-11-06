@@ -85,3 +85,24 @@ def test_independent_mode_ignores_country_shocks(data):
     sim = Simulator(parts, params, plan, pd.Series(dtype=float),
                     SimConfig(n_sims=200, correlated=False, escalation_p_month={"CHN": 0.5}))
     assert sim.run()["shortfall"].mean() == 0
+
+
+def test_eoq_formula_and_moq_floor(data):
+    _, parts, *_ = data
+    plan = demand.production_plan(100, 100, 12)            # flat: annual demand = 1200 x extended qty
+    lots = demand.lot_sizing(parts, plan, order_cost=400, carrying_rate=0.25).set_index("part_id")
+    p = parts.set_index("part_id").loc["AVI-002"]             # 1 per system
+    expected = np.sqrt(2 * 1200 * 400 / (p["unit_cost_usd"] * 0.25))
+    assert lots.loc["AVI-002", "eoq"] == pytest.approx(expected)
+    assert (lots["lot_size"] >= lots["moq"]).all()
+    assert (lots["lot_size"] >= np.floor(lots["eoq"])).all()
+
+
+def test_lot_rounding_in_order_schedule(data):
+    _, parts, *_ = data
+    plan = demand.production_plan(10, 10, 6)
+    one = parts[parts["part_id"] == "AIR-001"]               # 1 per system -> 10/month
+    sched = demand.order_schedule(one, plan, pd.Series({"AIR-001": 25}))
+    assert (sched["qty"] % 25 == 0).all()                    # whole lots only
+    assert sched["qty"].sum() >= 60                          # covers total need
+    assert sched["qty"].sum() - 60 < 25                      # never more than one lot of excess

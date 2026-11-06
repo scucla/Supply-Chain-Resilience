@@ -86,6 +86,12 @@ with tabs[2]:
     st.subheader("Order-now list (lead time longer than time until need)")
     late = r["orders"].query("status != 'planned'").groupby("part_id")["qty"].sum().sort_values(ascending=False)
     st.dataframe(late.rename("qty_already_late").to_frame().join(names), width="stretch")
+    st.subheader("Lot sizing: economic order quantity vs. minimum order quantity")
+    st.caption("Economic order quantity = √(2 × annual demand × cost per order ÷ holding cost per unit). "
+               "The lot used is the larger of that and the supplier's minimum. Lots smaller than a month's need "
+               "mean several deliveries per month.")
+    lots = r["lots"].merge(r["parts"][["part_id", "part_name", "direct_buy"]])
+    st.dataframe(lots[lots["direct_buy"]].drop(columns="direct_buy").round(1), width="stretch", hide_index=True)
     st.subheader("Safety stock: SS = z·√(L·σd² + d²·σL²)")
     st.dataframe(r["safety_stock"].round(1), width="stretch", hide_index=True)
 

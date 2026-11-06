@@ -1,46 +1,46 @@
-part_id,part_name,parent_id,qty_per_parent,make_buy,tier,category,unit_cost_usd,supplier,supplier_country,alt_suppliers_qualified,lead_time_wks,lead_time_sd_wks,key_material,ndaa_848_category
-UAS-100,Illustrative Group 2 sUAS (top level),,1,make,0,system,0,In-house,USA,0,0,0,,
-ASM-AIR,Airframe assembly,UAS-100,1,make,0,assembly,0,In-house,USA,0,0,0,,
-ASM-PROP,Propulsion assembly,UAS-100,1,make,0,assembly,0,In-house,USA,0,0,0,,
-ASM-AVI,Avionics assembly,UAS-100,1,make,0,assembly,0,In-house,USA,0,0,0,,
-ASM-PWR,Power assembly,UAS-100,1,make,0,assembly,0,In-house,USA,0,0,0,,
-ASM-COM,Comms assembly,UAS-100,1,make,0,assembly,0,In-house,USA,0,0,0,,
-ASM-PAY,EO/IR payload assembly,UAS-100,1,make,0,assembly,0,In-house,USA,0,0,0,,
-AIR-001,Carbon fiber fuselage shell,ASM-AIR,1,buy,1,structures,1850,CompositeWorks,USA,1,10,2,carbon_fiber,
-AIR-002,Carbon fiber arm tube,ASM-AIR,4,buy,1,structures,95,TubeTech,USA,1,6,1,carbon_fiber,
-AIR-003,Machined aluminum motor mount,ASM-AIR,4,buy,1,structures,60,Precision CNC,MEX,2,4,1,aluminum,
-AIR-004,Landing gear assembly,ASM-AIR,1,buy,1,structures,240,Precision CNC,MEX,2,5,1,aluminum,
-AIR-005,Titanium fastener kit,ASM-AIR,1,buy,1,hardware,85,AeroFast,USA,2,3,0.5,,
-AIR-006,Composite propeller,ASM-PROP,4,buy,1,propulsion,70,PropCo,DEU,1,8,2,carbon_fiber,
-PRP-001,Brushless outrunner motor,ASM-PROP,4,buy,1,propulsion,420,MotorDyn,JPN,0,14,4,,
-PRP-001A,NdFeB permanent magnet set,PRP-001,1,buy,2,magnetics,55,MagnaSource,CHN,0,12,4,ndfeb_magnets,
-PRP-001B,Copper magnet wire,PRP-001,1,buy,2,electrical,12,WireCo,MYS,2,4,1,copper,
-PRP-001C,Precision bearing set,PRP-001,2,buy,2,mechanical,18,BearingTec,JPN,1,8,2,,
-PRP-002,Electronic speed controller (ESC),ASM-PROP,4,buy,1,electrical,310,PowerEdge,MEX,0,10,3,,
-PRP-002A,GaN power FET,PRP-002,6,buy,2,semiconductor,9,WideBand Semi,CHN,0,16,5,gallium,
-PRP-002B,ESC microcontroller,PRP-002,1,buy,2,semiconductor,6,MCU Global,TWN,1,20,6,mature_logic,
-PRP-002C,Ceramic capacitor kit,PRP-002,1,buy,2,passive,4,PassiveOne,JPN,2,12,3,,
-AVI-001,Flight controller board,ASM-AVI,1,buy,1,electronics,1450,FlightCore,USA,0,12,3,,flight controller
-AVI-001A,Application SoC (edge AI),AVI-001,1,buy,2,semiconductor,380,EdgeCompute,TWN,0,26,8,advanced_logic,
-AVI-001B,FPGA,AVI-001,1,buy,2,semiconductor,520,ProgLogic,TWN,0,30,10,advanced_logic,
-AVI-001C,LPDDR5 memory,AVI-001,2,buy,2,semiconductor,28,MemTek,KOR,1,14,4,,
-AVI-001D,Bare PCB (12-layer HDI),AVI-001,1,buy,2,pcb,140,BoardHouse,TWN,1,8,2,copper,
-AVI-002,Tactical-grade IMU,ASM-AVI,1,buy,1,sensors,2800,InertialSys,USA,0,18,5,,
-AVI-003,M-code capable GNSS receiver,ASM-AVI,1,buy,1,sensors,3200,NavSecure,USA,0,22,6,,
-AVI-004,Barometric/air data sensor,ASM-AVI,1,buy,1,sensors,190,SenseAir,CHE,1,10,2,,
-AVI-005,Wiring harness,ASM-AVI,1,buy,1,electrical,260,HarnessPro,MEX,2,5,1,copper,
-AVI-006,Avionics connector set (MIL-DTL-38999),ASM-AVI,1,buy,1,electrical,410,ConnectMil,USA,1,16,5,,
-PWR-001,Li-ion battery pack (custom),ASM-PWR,2,buy,1,energy,1650,CellPack,USA,0,12,3,,
-PWR-001A,21700 Li-ion cells,PWR-001,12,buy,2,energy,7,CellMakers,KOR,1,10,3,lithium,
-PWR-001B,Graphite anode material,PWR-001A,1,buy,3,energy,1,AnodeChem,CHN,0,8,3,graphite,
-PWR-001C,Battery management system board,PWR-001,1,buy,2,electronics,140,BMS Labs,USA,1,8,2,,
-PWR-002,Power distribution board,ASM-PWR,1,buy,1,electronics,330,PowerEdge,MEX,1,8,2,,
-COM-001,Mesh datalink radio,ASM-COM,1,buy,1,rf,4200,MeshLink,USA,0,20,6,,radio / data transmission device
-COM-001A,RF front-end module,COM-001,2,buy,2,semiconductor,65,RF Micro,USA,1,18,5,gallium,
-COM-001B,Radio baseband SoC,COM-001,1,buy,2,semiconductor,95,EdgeCompute,TWN,0,24,7,advanced_logic,
-COM-002,Antenna set,ASM-COM,1,buy,1,rf,320,AntennaWorks,USA,2,6,1,,
-PAY-001,EO/IR gimbal (stabilized),ASM-PAY,1,buy,1,payload,9800,GimbalVision,USA,0,24,7,,gimbal
-PAY-001A,Uncooled LWIR microbolometer core,PAY-001,1,buy,2,sensors,2400,ThermalCore,USA,1,20,6,,
-PAY-001B,Germanium IR lens,PAY-001,1,buy,2,optics,480,OptiGerm,CHN,0,14,5,germanium,
-PAY-001C,Gimbal servo motor,PAY-001,3,buy,2,mechanical,140,MotorDyn,JPN,1,10,3,ndfeb_magnets,
-PAY-001D,EO camera sensor,PAY-001,1,buy,2,sensors,160,ImageSense,JPN,1,12,3,,camera
+part_id,part_name,parent_id,qty_per_parent,make_buy,tier,category,unit_cost_usd,supplier,supplier_country,alt_suppliers_qualified,lead_time_wks,lead_time_sd_wks,key_material,ndaa_848_category,moq
+UAS-100,Illustrative Group 2 sUAS (top level),,1,make,0,system,0,In-house,USA,0,0,0,,,0
+ASM-AIR,Airframe assembly,UAS-100,1,make,0,assembly,0,In-house,USA,0,0,0,,,0
+ASM-PROP,Propulsion assembly,UAS-100,1,make,0,assembly,0,In-house,USA,0,0,0,,,0
+ASM-AVI,Avionics assembly,UAS-100,1,make,0,assembly,0,In-house,USA,0,0,0,,,0
+ASM-PWR,Power assembly,UAS-100,1,make,0,assembly,0,In-house,USA,0,0,0,,,0
+ASM-COM,Comms assembly,UAS-100,1,make,0,assembly,0,In-house,USA,0,0,0,,,0
+ASM-PAY,EO/IR payload assembly,UAS-100,1,make,0,assembly,0,In-house,USA,0,0,0,,,0
+AIR-001,Carbon fiber fuselage shell,ASM-AIR,1,buy,1,structures,1850,CompositeWorks,USA,1,10,2,carbon_fiber,,10
+AIR-002,Carbon fiber arm tube,ASM-AIR,4,buy,1,structures,95,TubeTech,USA,1,6,1,carbon_fiber,,50
+AIR-003,Machined aluminum motor mount,ASM-AIR,4,buy,1,structures,60,Precision CNC,MEX,2,4,1,aluminum,,100
+AIR-004,Landing gear assembly,ASM-AIR,1,buy,1,structures,240,Precision CNC,MEX,2,5,1,aluminum,,25
+AIR-005,Titanium fastener kit,ASM-AIR,1,buy,1,hardware,85,AeroFast,USA,2,3,0.5,,,50
+AIR-006,Composite propeller,ASM-PROP,4,buy,1,propulsion,70,PropCo,DEU,1,8,2,carbon_fiber,,100
+PRP-001,Brushless outrunner motor,ASM-PROP,4,buy,1,propulsion,420,MotorDyn,JPN,0,14,4,,,40
+PRP-001A,NdFeB permanent magnet set,PRP-001,1,buy,2,magnetics,55,MagnaSource,CHN,0,12,4,ndfeb_magnets,,200
+PRP-001B,Copper magnet wire,PRP-001,1,buy,2,electrical,12,WireCo,MYS,2,4,1,copper,,500
+PRP-001C,Precision bearing set,PRP-001,2,buy,2,mechanical,18,BearingTec,JPN,1,8,2,,,500
+PRP-002,Electronic speed controller (ESC),ASM-PROP,4,buy,1,electrical,310,PowerEdge,MEX,0,10,3,,,40
+PRP-002A,GaN power FET,PRP-002,6,buy,2,semiconductor,9,WideBand Semi,CHN,0,16,5,gallium,,1000
+PRP-002B,ESC microcontroller,PRP-002,1,buy,2,semiconductor,6,MCU Global,TWN,1,20,6,mature_logic,,250
+PRP-002C,Ceramic capacitor kit,PRP-002,1,buy,2,passive,4,PassiveOne,JPN,2,12,3,,,1000
+AVI-001,Flight controller board,ASM-AVI,1,buy,1,electronics,1450,FlightCore,USA,0,12,3,,flight controller,10
+AVI-001A,Application SoC (edge AI),AVI-001,1,buy,2,semiconductor,380,EdgeCompute,TWN,0,26,8,advanced_logic,,50
+AVI-001B,FPGA,AVI-001,1,buy,2,semiconductor,520,ProgLogic,TWN,0,30,10,advanced_logic,,24
+AVI-001C,LPDDR5 memory,AVI-001,2,buy,2,semiconductor,28,MemTek,KOR,1,14,4,,,250
+AVI-001D,Bare PCB (12-layer HDI),AVI-001,1,buy,2,pcb,140,BoardHouse,TWN,1,8,2,copper,,25
+AVI-002,Tactical-grade IMU,ASM-AVI,1,buy,1,sensors,2800,InertialSys,USA,0,18,5,,,5
+AVI-003,M-code capable GNSS receiver,ASM-AVI,1,buy,1,sensors,3200,NavSecure,USA,0,22,6,,,5
+AVI-004,Barometric/air data sensor,ASM-AVI,1,buy,1,sensors,190,SenseAir,CHE,1,10,2,,,25
+AVI-005,Wiring harness,ASM-AVI,1,buy,1,electrical,260,HarnessPro,MEX,2,5,1,copper,,25
+AVI-006,Avionics connector set (MIL-DTL-38999),ASM-AVI,1,buy,1,electrical,410,ConnectMil,USA,1,16,5,,,50
+PWR-001,Li-ion battery pack (custom),ASM-PWR,2,buy,1,energy,1650,CellPack,USA,0,12,3,,,20
+PWR-001A,21700 Li-ion cells,PWR-001,12,buy,2,energy,7,CellMakers,KOR,1,10,3,lithium,,1000
+PWR-001B,Graphite anode material,PWR-001A,1,buy,3,energy,1,AnodeChem,CHN,0,8,3,graphite,,2000
+PWR-001C,Battery management system board,PWR-001,1,buy,2,electronics,140,BMS Labs,USA,1,8,2,,,50
+PWR-002,Power distribution board,ASM-PWR,1,buy,1,electronics,330,PowerEdge,MEX,1,8,2,,,25
+COM-001,Mesh datalink radio,ASM-COM,1,buy,1,rf,4200,MeshLink,USA,0,20,6,,radio / data transmission device,5
+COM-001A,RF front-end module,COM-001,2,buy,2,semiconductor,65,RF Micro,USA,1,18,5,gallium,,100
+COM-001B,Radio baseband SoC,COM-001,1,buy,2,semiconductor,95,EdgeCompute,TWN,0,24,7,advanced_logic,,50
+COM-002,Antenna set,ASM-COM,1,buy,1,rf,320,AntennaWorks,USA,2,6,1,,,50
+PAY-001,EO/IR gimbal (stabilized),ASM-PAY,1,buy,1,payload,9800,GimbalVision,USA,0,24,7,,gimbal,5
+PAY-001A,Uncooled LWIR microbolometer core,PAY-001,1,buy,2,sensors,2400,ThermalCore,USA,1,20,6,,,10
+PAY-001B,Germanium IR lens,PAY-001,1,buy,2,optics,480,OptiGerm,CHN,0,14,5,germanium,,25
+PAY-001C,Gimbal servo motor,PAY-001,3,buy,2,mechanical,140,MotorDyn,JPN,1,10,3,ndfeb_magnets,,100
+PAY-001D,EO camera sensor,PAY-001,1,buy,2,sensors,160,ImageSense,JPN,1,12,3,,camera,50
