@@ -142,3 +142,53 @@ def test_sensitivity_hooks_change_inputs():
     r2 = run(replace(base, material_overrides={"germanium": {"CHN": 0.94, "OTHER": 0.06}}), with_mitigations=False)
     hhi = r2["materials"].set_index("material").loc["germanium", "hhi"]
     assert hhi == pytest.approx(0.94 ** 2)
+
+
+# ---- live signal -------------------------------------------------------------
+def _fake_gdelt(daily_old, daily_new, days_old=180, days_new=30):
+    from datetime import date, timedelta
+    start = date(2026, 4, 1)
+    data = [{"date": (start + timedelta(days=i)).strftime("%Y%m%dT000000Z"),
+             "value": daily_old if i < days_old else daily_new} for i in range(days_old + days_new)]
+    return {"timeline": [{"series": "Article Count", "data": data}]}
+
+
+def test_gdelt_parser_ratio():
+    from src.signals import parse_gdelt_timeline
+    recent, base = parse_gdelt_timeline(_fake_gdelt(2, 6))
+    assert recent == pytest.approx(180)          # 30 days x 6
+    assert base == pytest.approx(60)             # 30 days x 2
+    assert recent / base == pytest.approx(3.0)
+
+
+def test_calendar_and_news_multiplier(tmp_path):
+    from datetime import date
+    from src import signals
+    exposed = {"gallium", "graphite"}
+    fake = lambda url, timeout: _fake_gdelt(2, 6)           # news volume tripled
+    out = signals.escalation_signal(exposed, {"CHN": 0.02}, asof=date(2026, 11, 5), fetch=fake,
+                                    external_path=tmp_path / "none.json")
+    c = out["countries"]["CHN"]
+    assert c["calendar_multiplier"] == 2.0                 # Nov 10 and Nov 27 lapses both within 90 days
+    assert c["other_multiplier"] == pytest.approx(1.5)     # 1 + 0.25 x (3 - 1)
+    assert c["multiplier"] == pytest.approx(3.0)           # capped at 3
+    # After both deadlines pass, the calendar adds nothing
+    later = signals.escalation_signal(exposed, {"CHN": 0.02}, asof=date(2027, 3, 1), use_news=False,
+                                      external_path=tmp_path / "none.json")
+    assert later["countries"]["CHN"]["multiplier"] == 1.0
+
+
+def test_offline_and_external_override(tmp_path):
+    from datetime import date
+    from src import signals
+    def offline(url, timeout):
+        raise OSError("no network")
+    out = signals.escalation_signal({"gallium"}, {"CHN": 0.02}, asof=date(2027, 3, 1), fetch=offline,
+                                    external_path=tmp_path / "none.json")
+    assert out["countries"]["CHN"]["multiplier"] == 1.0    # fails safe
+    ext = tmp_path / "external_signal.json"
+    signals.write_external("CHN", 1.8, "sentinel", path=ext)
+    out = signals.escalation_signal({"gallium"}, {"CHN": 0.02}, asof=date(2027, 3, 1), fetch=offline,
+                                    external_path=ext)
+    assert out["countries"]["CHN"]["multiplier"] == pytest.approx(1.8)
+    assert "sentinel" in out["countries"]["CHN"]["other_source"]

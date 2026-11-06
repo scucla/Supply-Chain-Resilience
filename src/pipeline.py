@@ -7,7 +7,7 @@ import pandas as pd
 
 from . import bom as bom_mod
 from . import demand, risk
-from . import optimize
+from . import optimize, signals
 from .simulate import SimConfig, Simulator
 
 
@@ -30,6 +30,9 @@ class Inputs:
     param_scale: dict = field(default_factory=dict)        # e.g. {"p_month": 1.5, "mean_duration": 0.5}
     material_overrides: dict = field(default_factory=dict)  # e.g. {"germanium": {"CHN": 0.94, "OTHER": 0.06}}
     country_risk_overrides: dict = field(default_factory=dict)  # e.g. {"CHN": 0.7}
+    live_signal: bool = False          # scale the escalation probability by the policy/news signal
+    signal_use_news: bool = True       # include the online news component (needs internet)
+    signal_asof: object = None         # date for the policy calendar; None = today
 
 
 def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
@@ -54,6 +57,12 @@ def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
 
     scored = risk.score_parts(parts, materials, countries, inp.weights)
     scored = scored.merge(spend.rename("horizon_spend_usd"), left_on="part_id", right_index=True)
+    signal = None
+    if inp.live_signal:
+        exposed = set(scored.loc[scored["key_material"] != "", "key_material"])
+        signal = signals.escalation_signal(exposed, inp.sim.escalation_p_month, asof=inp.signal_asof,
+                                           use_news=inp.signal_use_news)
+        inp.sim.escalation_p_month = {c: v["adjusted_p_month"] for c, v in signal["countries"].items()}
     params = risk.disruption_params(scored, materials, countries)
     for col, k in inp.param_scale.items():
         params[col] = params[col] * k
@@ -70,6 +79,7 @@ def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
     out = {
         "exploded": exploded, "parts": parts, "plan": plan, "requirements": reqs,
         "safety_stock": ss, "orders": orders, "lots": lots, "scored": scored, "params": params,
+        "signal": signal,
         "unit_economics": {"unit_price_usd": inp.unit_price_usd, "material_cost_usd": material_cost,
                            "conversion_cost_usd": inp.conversion_cost_usd, "margin_per_unit_usd": margin},
         "materials": risk.material_metrics(materials, countries),

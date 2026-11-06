@@ -27,6 +27,10 @@ with st.sidebar:
     st.header("Unit economics")
     price = st.number_input("Sale price per system ($)", 10_000, 500_000, 80_000, 5_000)
     conv = st.number_input("Assembly + overhead per system ($)", 0, 200_000, 15_000, 1_000)
+    st.header("Live risk signal")
+    live = st.toggle("Adjust China shock risk for policy deadlines and news", value=False,
+                     help="Uses data/policy_calendar.csv (offline) plus GDELT news volume (online). "
+                          "If data/external_signal.json exists (e.g. written by Sentinel) it replaces the news part.")
     st.header("Simulation")
     n_sims = st.select_slider("Simulations", [500, 1000, 2000, 5000], 2000)
     surge = st.slider("Supplier catch-up capacity", 0.0, 1.0, 0.25, 0.05)
@@ -34,13 +38,15 @@ with st.sidebar:
 
 
 @st.cache_resource(show_spinner="Running Monte Carlo...")
-def cached_run(start, end, months, shape, sl, cv, w_items, n_sims, surge, buffer_wks, price, conv):
+def cached_run(start, end, months, shape, sl, cv, w_items, n_sims, surge, buffer_wks, price, conv, live, today):
     cfg = SimConfig(n_sims=n_sims, surge=surge, buffer_weeks=buffer_wks)
     return run(Inputs(start, end, months, shape, sl, cv, dict(w_items), cfg,
-                      unit_price_usd=price, conversion_cost_usd=conv))
+                      unit_price_usd=price, conversion_cost_usd=conv, live_signal=live, signal_asof=today))
 
 
-r = cached_run(start, end, months, shape, sl, cv, tuple(w.items()), n_sims, surge, buffer_wks, price, conv)
+import datetime as _dt
+r = cached_run(start, end, months, shape, sl, cv, tuple(w.items()), n_sims, surge, buffer_wks, price, conv, live,
+               _dt.date.today())
 S, scored, m = r["sim_summary"], r["scored"], r["mitigations"]
 names = r["parts"].set_index("part_id")["part_name"]
 
@@ -61,6 +67,18 @@ with tabs[0]:
         c[2].metric("Profit at risk, worst 5%", f"${S['profit_at_risk_p95_usd'] / 1e6:,.1f}M")
         st.caption("Profit at risk = systems not delivered within the plan × profit per system. Late systems may "
                    "still ship later, so treat this as an upper bound.")
+    if r.get("signal"):
+        sig = r["signal"]
+        for c, v in sig["countries"].items():
+            st.info(f"**Live signal ({sig['asof']}):** {c} shock probability {v['base_p_month']:.1%} → "
+                    f"**{v['adjusted_p_month']:.1%}/month** (×{v['multiplier']:.2f}: policy calendar "
+                    f"×{v['calendar_multiplier']:.1f}, {v['other_source']} ×{v['other_multiplier']:.2f})")
+        if len(sig["lapses"]):
+            st.markdown("**Suspended controls lapsing within 90 days**")
+            st.dataframe(sig["lapses"], width="stretch", hide_index=True)
+        if len(sig["news"]):
+            with st.expander("News volume by material"):
+                st.dataframe(sig["news"].round(2), width="stretch", hide_index=True)
     if not m.empty:
         top = m.iloc[0]
         best = r["portfolios"][-1]

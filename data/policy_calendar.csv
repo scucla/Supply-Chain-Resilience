@@ -1,0 +1,6 @@
+event_id,country,announced,status,suspended_until,materials,description,source_url
+CHN-2023-GA-GE,CHN,2023-07-03,in_force,,gallium;germanium,Export licences required for gallium and germanium (effective 1 Aug 2023),https://evertiq.com/news/2025-11-10-china-suspends-ban-on-gallium-and-germanium-exports-to-the-us
+CHN-2024-46-US-BAN,CHN,2024-12-03,suspended,2026-11-27,gallium;germanium,"Ban on gallium, germanium and antimony exports to the United States (Announcement No. 46 of 2024, clause 2); suspended 9 Nov 2025",https://www.cnbc.com/2025/11/09/china-suspends-ban-on-exports-of-gallium-germanium-antimony-to-us.html
+CHN-2024-46-MIL,CHN,2024-12-03,in_force,,*,Ban on dual-use exports to United States military end users (never suspended),https://www.mining-technology.com/news/china-suspends-ban-exports-us/
+CHN-2025-18-REE,CHN,2025-04-04,in_force,,ndfeb_magnets,"Licences required for seven medium/heavy rare earths incl. dysprosium and terbium, used in high-temperature magnets",https://www.skillings.net/?p=99262
+CHN-2025-OCT-PACKAGE,CHN,2025-10-09,suspended,2026-11-10,ndfeb_magnets;graphite;lithium,"Announcements 55-58, 61, 62 of 2025: more rare earths, foreign-made magnets with Chinese inputs, lithium batteries, graphite anode material; suspended by Announcement 70 of 2025",https://www.technology.org/2026/10/19/china-rare-earth-export-pause-november-10/
