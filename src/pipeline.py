@@ -26,11 +26,21 @@ class Inputs:
     use_lot_sizing: bool = True        # order in max(EOQ, MOQ) lots instead of exactly what is needed
     unit_price_usd: float = 80_000     # illustrative sale price per system - assumption
     conversion_cost_usd: float = 15_000  # assembly labor, test, overhead per system - assumption
+    # Hooks for sensitivity analysis (empty = use the data and model as written)
+    param_scale: dict = field(default_factory=dict)        # e.g. {"p_month": 1.5, "mean_duration": 0.5}
+    material_overrides: dict = field(default_factory=dict)  # e.g. {"germanium": {"CHN": 0.94, "OTHER": 0.06}}
+    country_risk_overrides: dict = field(default_factory=dict)  # e.g. {"CHN": 0.7}
 
 
 def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
     inp = inp or Inputs()
     raw, materials, countries = bom_mod.load_data()
+    for mat, shares in inp.material_overrides.items():
+        materials = pd.concat([materials[materials["material"] != mat],
+                               pd.DataFrame({"material": mat, "country": list(shares), "share": list(shares.values())})],
+                              ignore_index=True)
+    for c, v in inp.country_risk_overrides.items():
+        countries.loc[countries["country"] == c, "geo_risk"] = v
     exploded = bom_mod.explode(raw)
     parts = bom_mod.purchased_parts(exploded)
 
@@ -45,6 +55,10 @@ def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
     scored = risk.score_parts(parts, materials, countries, inp.weights)
     scored = scored.merge(spend.rename("horizon_spend_usd"), left_on="part_id", right_index=True)
     params = risk.disruption_params(scored, materials, countries)
+    for col, k in inp.param_scale.items():
+        params[col] = params[col] * k
+        if col == "mean_duration":
+            params[col] = params[col].clip(lower=1.0)
 
     init_inv = ss.set_index("part_id")["safety_stock_units"]
     material_cost = float((parts["extended_qty"] * parts["unit_cost_usd"]).where(parts["direct_buy"], 0).sum())

@@ -131,3 +131,14 @@ def test_cvar_is_at_least_mean():
     from src.optimize import risk_metric
     x = np.random.default_rng(0).exponential(10, 1000)
     assert risk_metric(x, "cvar") >= risk_metric(x, "mean")
+
+
+def test_sensitivity_hooks_change_inputs():
+    from dataclasses import replace
+    base = Inputs(sim=SimConfig(n_sims=200))
+    r0 = run(base, with_mitigations=False)
+    r1 = run(replace(base, param_scale={"p_month": 3.0}), with_mitigations=False)
+    assert r1["sim_summary"]["fill_rate"] < r0["sim_summary"]["fill_rate"]
+    r2 = run(replace(base, material_overrides={"germanium": {"CHN": 0.94, "OTHER": 0.06}}), with_mitigations=False)
+    hhi = r2["materials"].set_index("material").loc["germanium", "hhi"]
+    assert hhi == pytest.approx(0.94 ** 2)

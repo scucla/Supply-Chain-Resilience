@@ -44,7 +44,8 @@ r = cached_run(start, end, months, shape, sl, cv, tuple(w.items()), n_sims, surg
 S, scored, m = r["sim_summary"], r["scored"], r["mitigations"]
 names = r["parts"].set_index("part_id")["part_name"]
 
-tabs = st.tabs(["Summary", "BOM", "Demand plan", "Risk", "Simulation", "Mitigations", "Budget optimizer"])
+tabs = st.tabs(["Summary", "BOM", "Demand plan", "Risk", "Simulation", "Mitigations", "Budget optimizer",
+                "Sensitivity"])
 
 # ---------------- summary ----------------
 with tabs[0]:
@@ -201,3 +202,19 @@ with tabs[6]:
         st.dataframe(g.round(3), width="stretch", hide_index=True)
         st.subheader("Best set for a fixed budget")
         st.dataframe(fr["budgets"].round(3), width="stretch", hide_index=True)
+
+# ---------------- sensitivity ----------------
+with tabs[7]:
+    from pathlib import Path
+    docs = Path(__file__).parent / "docs"
+    st.caption("Each assumption moved to a low and a high value with everything else at base. Precomputed by "
+               "`python run_sensitivity.py` at the default settings (it does not follow the sidebar).")
+    if (docs / "tornado.png").exists():
+        st.image(str(docs / "tornado.png"))
+    if (docs / "sensitivity.csv").exists():
+        sens = pd.read_csv(docs / "sensitivity.csv")
+        n = 2 * len(sens)
+        st.markdown(f"- **#1 recommendation unchanged** in "
+                    f"{int((sens['top1_low'] == sens['top1_low'].mode()[0]).sum() + (sens['top1_high'] == sens['top1_low'].mode()[0]).sum())}/{n} cases\n"
+                    f"- **Top-3 set unchanged** in {int(sens['top3_same_set_low'].sum() + sens['top3_same_set_high'].sum())}/{n} cases")
+        st.dataframe(sens.round(3), width="stretch", hide_index=True)
