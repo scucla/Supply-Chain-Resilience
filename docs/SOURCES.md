@@ -1,6 +1,6 @@
 # Data sources and assumptions
 
-Every number in `data/` is either **cited** (with a link in the CSV) or **assumed** (labeled `Assumption` or `ASSUMED`). This page summarizes both so a reviewer can check them quickly. Shares were last checked on **5 November 2026**.
+Every number in `data/` (including `policy_calendar.csv`) is either **cited** (with a link in the CSV) or **assumed** (labeled `Assumption` or `ASSUMED`). This page summarizes both so a reviewer can check them quickly. Shares were last checked on **5 November 2026**.
 
 ## Material production shares (`data/material_sources.csv`)
 
@@ -46,15 +46,21 @@ These are **judgment calls** on a 0–1 scale, with the reasoning written next t
 
 ## Model parameters that are assumptions
 
-| Parameter | Value | Where |
-|---|---|---|
-| Monthly outage probability | 0.2% + 1.5% × geopolitical + 1% × concentration | `risk.disruption_params` |
-| Average outage length | 1 + 3 × concentration months | same |
-| Outage severity | Uniform(30%, 100%) of output lost | `SimConfig.min_severity` |
-| Backup coverage | 0 / 50% / 80% for 0 / 1 / 2+ alternates | `risk.disruption_params` |
-| Supplier catch-up capacity | 25% of monthly volume | `SimConfig.surge` |
-| Qualification cost | $50,000 + 3% price premium | `SimConfig` |
-| Inventory carrying cost | 25% per year | `SimConfig` |
-| Forecast error | 20% | `Inputs.demand_cv` |
+| Parameter | Value | Where | Basis |
+|---|---|---|---|
+| Part-level outage probability per month | 0.2% + 0.8% × geopolitical + 0.5% × concentration | `risk.disruption_params` | Judgment; top sensitivity |
+| Average part outage length | 1 + 3 × concentration months | same | Judgment; top sensitivity |
+| Part outage severity | Uniform(30%, 100%) of output lost | `SimConfig.min_severity` | Judgment |
+| China escalation shock probability | 2% per month (about 22% per year) | `SimConfig.escalation_p_month` | China announced roughly five rounds of controls touching these materials between Jul 2023 and Oct 2025 (about 0.2 per month). Most were licensing that slowed rather than stopped supply, so we assume about 1 in 10 effectively cuts supply to a given buyer |
+| Escalation length / severity | Geometric, average 4 months / Uniform(30%, 100%) | `SimConfig` | Judgment; tested 2–6 months in the sensitivity analysis |
+| Backup coverage | 0 / 50% / 80% for 0 / 1 / 2+ alternates | `risk.disruption_params` | Judgment |
+| Supplier catch-up capacity | 25% of monthly volume | `SimConfig.surge` | Judgment |
+| Second-supplier qualification | $50,000 + 3% price premium | `SimConfig` | Rough industry estimate |
+| Non-China material qualification | $75,000 + 10% price premium | `SimConfig` | Rough estimate; non-Chinese material typically costs more |
+| Inventory carrying cost | 25% per year | `SimConfig.carrying_rate` | Common textbook range 20–30% |
+| Cost per purchase order | $400 | `Inputs.order_cost` | Admin, receiving inspection, fixed freight |
+| Forecast error | 20% | `Inputs.demand_cv` | Judgment |
+| Sale price / assembly cost per system | $80,000 / $15,000 | `Inputs` | Illustrative; profit = price − purchased parts − assembly |
+| Live-signal coefficients | +0.5 per upcoming lapse; +0.25 per unit of news ratio above 1; cap 3× | `signals.py` | Simple, documented choices, not fitted |
 
 The bill of materials itself (parts, costs, lead times, suppliers) is **illustrative** and does not represent any real product.

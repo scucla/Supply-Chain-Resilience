@@ -29,7 +29,7 @@ is that the plan reacts to a dated, checkable signal instead of a fixed number.
 from __future__ import annotations
 
 import json
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -141,5 +141,5 @@ def escalation_signal(exposed_materials: set[str], base_p: dict[str, float], aso
 def write_external(country: str, multiplier: float, source: str, path: Path = DATA / "external_signal.json") -> None:
     """Helper for other systems (e.g. Sentinel) to publish a multiplier."""
     data = load_external(path)
-    data[country] = {"multiplier": float(multiplier), "source": source, "asof": datetime.utcnow().date().isoformat()}
+    data[country] = {"multiplier": float(multiplier), "source": source, "asof": datetime.now(timezone.utc).date().isoformat()}
     path.write_text(json.dumps(data, indent=2))
