@@ -4,7 +4,9 @@
 
 > The bill of materials (BOM) is **illustrative**: a generic Group 2 small unmanned aircraft system assembled from public information. It does not represent any real product or company data. Material shares and policy dates are cited ([SOURCES.md](docs/SOURCES.md)). Outage rates and costs are explicit, documented assumptions.
 
-![Dashboard](docs/simulation.png)
+![Dashboard](docs/dashboard_hero.png)
+
+![Simulation tab](docs/simulation.png)
 
 ## What it does
 
@@ -69,6 +71,19 @@ Any other model can publish its own multiplier the same way:
 ```bash
 python run_signal.py --publish CHN 1.8 --source my-model
 ```
+
+## Media credits
+
+The dashboard's background video and photos are U.S. government works in the public domain, downloaded from Wikimedia Commons by `scripts/fetch_media.py` (which refuses any file not marked public domain) and listed in `static/credits.json`:
+
+| Asset | Credit | Source |
+|---|---|---|
+| Hero video: MQ-9 in flight over Nevada | Senior Airman Haley Stevens, U.S. Air Force | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:MQ-9_Reaper_aerial_video_DOD_107212162-5e1342c0d88af.webm) |
+| Airmen assembling an MQ-9, Hurlburt Field | Staff Sgt. John Bainter, U.S. Air Force | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Rise_of_the_Reaper_140423-F-RS318-157.jpg) |
+| B-25 final assembly line, Inglewood, 1942 | Alfred T. Palmer, Office of War Information (Library of Congress) | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:B-25_final_assembly_line_Inglewood_1942.jpg) |
+| Small quadcopter in flight, Romania, 2025 | Sgt. Austin Steinborn, U.S. Army | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Skydio_drone_flies_during_Dynamic_Front_25_in_Sm%C3%A2rdan,_Romania.jpg) |
+
+The appearance of U.S. Department of Defense visual information does not imply or constitute DoD endorsement. Fonts: Inter and JetBrains Mono (SIL Open Font License).
 
 ## Assumptions and limitations
 

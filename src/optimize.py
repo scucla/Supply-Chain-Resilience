@@ -94,7 +94,7 @@ def best_for_budgets(sim: Simulator, candidates: list[dict], budgets: list[float
         rows.append({"budget_usd": b, "spent_usd": last["cumulative_cost_usd"], "n_actions": int(last["step"]),
                      "fill_rate": last["fill_rate"], "expected_shortfall": last["expected_shortfall"],
                      "cvar90_shortfall": last["cvar90_shortfall"],
-                     "actions": " | ".join(path["action"].iloc[1:])})
+                     "actions": " | ".join(f"{a} ({p})" for a, p in zip(path["action"].iloc[1:], path["risk_part"].iloc[1:]))})
     return pd.DataFrame(rows)
 
 

@@ -1,0 +1,26 @@
+{
+  "hero.mp4 / hero_poster.jpg": {
+    "artist": "Video by Senior Airman Haley Stevens",
+    "license": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:MQ-9_Reaper_aerial_video_DOD_107212162-5e1342c0d88af.webm",
+    "credit": "https://www.dvidshub.net/video/708466/mq-9-reaper-aerial-video"
+  },
+  "assembly_mq9.jpg": {
+    "artist": "Staff Sgt. John Bainter",
+    "license": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Rise_of_the_Reaper_140423-F-RS318-157.jpg",
+    "credit": "https://www.dvidshub.net/image/1332760"
+  },
+  "assembly_line_1942.jpg": {
+    "artist": "Alfred T. Palmer",
+    "license": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:B-25_final_assembly_line_Inglewood_1942.jpg",
+    "credit": "This image  is available from the United States  Library of Congress 's  Prints and Photographs division   under the digital ID  fsac.1a35295 .  This tag does not indicate the copyright status of the "
+  },
+  "small_uas.jpg": {
+    "artist": "Sgt. Austin Steinborn",
+    "license": "Public domain",
+    "page": "https://commons.wikimedia.org/wiki/File:Skydio_drone_flies_during_Dynamic_Front_25_in_Sm%C3%A2rdan,_Romania.jpg",
+    "credit": "https://www.dvidshub.net/image/8759258/dynamic-front-25-m119-a3-howitzer-and-skydio-drone"
+  }
+}
