@@ -237,7 +237,7 @@ with tabs[2]:
     ui.section("Lot sizing", "Economic order quantity vs. supplier minimum",
                "The lot is the larger of the economic order quantity and the supplier's minimum. Lots smaller than a "
                "month's need mean several deliveries a month.")
-    st.latex(r"Q^{*} = \sqrt{\dfrac{2\,D\,S}{H}} \qquad \text{lot} = \max\left(Q^{*},\ \text{MOQ}\right)")
+    ui.formula(r"Q^{*} = \sqrt{\dfrac{2\,D\,S}{H}}\qquad \mathrm{lot} = \max\,(Q^{*},\ \mathrm{MOQ})")
     st.caption("D = annual demand · S = cost per purchase order ($400) · H = holding cost per unit per year "
                "(25% of unit cost) · MOQ = supplier minimum order quantity")
     lots = r["lots"].merge(r["parts"][["part_id", "part_name", "direct_buy"]])
@@ -249,7 +249,7 @@ with tabs[2]:
     ui.section("Safety stock", "Buffer for demand and lead-time uncertainty",
                "Demand during the lead time varies for two reasons: demand itself, and the lead time. Safety stock "
                "covers both at a 95% cycle service level.")
-    st.latex(r"SS = z\,\sqrt{\,L\,\sigma_d^{2} + d^{2}\,\sigma_L^{2}\,}")
+    ui.formula(r"SS = z\,\sqrt{L\,\sigma_d^{2} + d^{2}\,\sigma_L^{2}}")
     st.caption("z = 1.645 for 95% · d, σd = average and spread of monthly demand · L, σL = average and spread of "
                "lead time in months")
     st.dataframe(r["safety_stock"], width="stretch", hide_index=True, column_config={
@@ -285,7 +285,7 @@ with tabs[3]:
         "section_848_category": "Critical component", "finding": "Finding"})
     ui.section("Materials", "How concentrated is world supply?",
                "Concentration is the Herfindahl-Hirschman index: the sum of squared country shares. 1 means one country.")
-    st.latex(r"\text{HHI} = \sum_{c} s_c^{2}")
+    ui.formula(r"\mathrm{HHI} = \sum_{c}\, s_c^{2}")
     st.dataframe(r["materials"], hide_index=True, width="stretch", column_config={
         "material": "Material", "top_country": "Top producer",
         "hhi": CC.ProgressColumn("Concentration", min_value=0, max_value=1, format="%.2f"),

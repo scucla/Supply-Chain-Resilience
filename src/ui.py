@@ -39,7 +39,7 @@ h1, h2, h3 {{ font-family:var(--sans) !important; letter-spacing:-0.02em; color:
 h2 {{ font-weight:600 !important; }} h3 {{ font-weight:500 !important; font-size:1.15rem !important; }}
 code {{ font-family:var(--mono) !important; color:var(--accent) !important; background:rgba(194,65,12,.07) !important; }}
 a {{ color:var(--text) !important; text-decoration:underline; text-decoration-color:rgba(15,23,32,.3); }}
-.katex {{ font-size:1.6em !important; color:var(--text); }}
+.formula {{ margin:.4rem 0 .2rem; }} .formula svg {{ height:auto; max-width:100%; }}
 
 /* sidebar */
 [data-testid="stSidebar"] {{ background:var(--panel); border-right:1px solid var(--line); }}
@@ -255,3 +255,29 @@ outage rates and costs are documented assumptions. <a href="https://github.com/s
 <a href="https://github.com/scucla/Supply-Chain-Resilience/blob/main/docs/MEMO.md">One-page memo</a><br>
 <span class="eyebrow">Media</span> U.S. government works in the public domain, via Wikimedia Commons. {media}.
 Use does not imply endorsement by the U.S. Department of Defense.</div>""", unsafe_allow_html=True)
+
+
+@st.cache_data(show_spinner=False)
+def _formula_svg(tex: str, size: int = 22) -> str:
+    """Typeset a formula with matplotlib's math renderer into an inline SVG string.
+
+    Rendered on the server, so the browser needs no extra script (st.latex lazy-loads one,
+    which can fail on Streamlit Cloud after a redeploy).
+    """
+    import io
+
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    with plt.rc_context({"mathtext.fontset": "cm", "svg.fonttype": "path"}):
+        fig = plt.figure(figsize=(0.01, 0.01))
+        fig.text(0, 0, f"${tex}$", fontsize=size, color=TEXT)
+        buf = io.StringIO()
+        fig.savefig(buf, format="svg", transparent=True, bbox_inches="tight", pad_inches=0.05)
+        plt.close(fig)
+    svg = buf.getvalue()
+    return svg[svg.find("<svg"):]
+
+
+def formula(tex: str, size: int = 22) -> None:
+    st.markdown(f'<div class="formula">{_formula_svg(tex, size)}</div>', unsafe_allow_html=True)
