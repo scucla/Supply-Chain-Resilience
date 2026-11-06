@@ -7,6 +7,7 @@ import pandas as pd
 
 from . import bom as bom_mod
 from . import demand, risk
+from . import optimize
 from .simulate import SimConfig, Simulator
 
 
@@ -69,3 +70,15 @@ def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
         out["portfolios"] = [{"n": n, **sim.evaluate_portfolio(m, n)} for n in (1, 3, 5) if n <= len(m)]
     out["simulator"] = sim
     return out
+
+
+def budget_frontier(r: dict, objective: str = "mean", max_steps: int = 10,
+                    budgets: tuple = (100_000, 250_000, 500_000, 1_000_000), top_k: int = 10) -> dict:
+    """Greedy re-simulated frontier, the naive ranking for comparison, and best sets for fixed budgets."""
+    sim = r["simulator"]
+    cands = sim.candidate_actions(r["scored"], top_k)
+    return {
+        "greedy": optimize.greedy(sim, cands, objective=objective, max_steps=max_steps),
+        "naive": optimize.naive_prefix(sim, r["mitigations"], objective=objective, max_steps=max_steps),
+        "budgets": optimize.best_for_budgets(sim, cands, list(budgets), objective=objective),
+    }

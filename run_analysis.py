@@ -6,7 +6,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.pipeline import Inputs, run
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+from src.pipeline import Inputs, budget_frontier, run
 
 OUT = Path(__file__).parent / "outputs"
 
@@ -60,6 +64,20 @@ def main() -> None:
     late = r["orders"][r["orders"]["status"] != "planned"]
     print(late.groupby("part_id")["qty"].sum().sort_values(ascending=False).head(10).to_string())
 
+    print("\n== Budget optimizer (greedy, re-simulated each step) ==")
+    fr = {obj: budget_frontier(r, obj) for obj in ("mean", "cvar")}
+    g = fr["mean"]["greedy"]
+    print(g[["step", "action", "risk_part", "cumulative_cost_usd", "fill_rate", "cvar90_shortfall"]]
+          .round(3).to_string(index=False))
+    print("\n  Best set for each budget (risk-neutral objective):")
+    print(fr["mean"]["budgets"][["budget_usd", "spent_usd", "n_actions", "fill_rate", "cvar90_shortfall"]]
+          .round(3).to_string(index=False))
+    _plot_frontier(fr, Path(__file__).parent / "docs" / "frontier.png")
+    for obj, d in fr.items():
+        d["greedy"].to_csv(OUT / f"frontier_greedy_{obj}.csv", index=False)
+        d["budgets"].to_csv(OUT / f"best_by_budget_{obj}.csv", index=False)
+    fr["mean"]["naive"].to_csv(OUT / "frontier_naive.csv", index=False)
+
     r["scored"].to_csv(OUT / "risk_scores.csv", index=False)
     r["orders"].to_csv(OUT / "order_schedule.csv", index=False)
     r["safety_stock"].to_csv(OUT / "safety_stock.csv", index=False)
@@ -67,6 +85,30 @@ def main() -> None:
     m.drop(columns="_specs").to_csv(OUT / "mitigations.csv", index=False)
     r["requirements"].to_csv(OUT / "gross_requirements.csv")
     print(f"\nCSVs written to {OUT}/")
+
+
+def _plot_frontier(fr: dict, path: Path) -> None:
+    fig, ax = plt.subplots(1, 2, figsize=(11, 4.2))
+    for obj, style in (("mean", "-o"), ("cvar", "--s")):
+        g = fr[obj]["greedy"]
+        ax[0].plot(g["cumulative_cost_usd"] / 1e3, g["fill_rate"] * 100, style, ms=4,
+                   label=f"Greedy ({'average' if obj == 'mean' else 'worst-10%'} objective)")
+        ax[1].plot(g["cumulative_cost_usd"] / 1e3, g["cvar90_shortfall"], style, ms=4)
+    n = fr["mean"]["naive"]
+    ax[0].plot(n["cumulative_cost_usd"] / 1e3, n["fill_rate"] * 100, ":^", ms=4, color="gray",
+               label="Naive (stand-alone ranking)")
+    ax[1].plot(n["cumulative_cost_usd"] / 1e3, n["cvar90_shortfall"], ":^", ms=4, color="gray")
+    ax[0].set(xlabel="Mitigation budget ($ thousands)", ylabel="Expected fill rate (%)",
+              title="Efficient frontier: fill rate")
+    ax[1].set(xlabel="Mitigation budget ($ thousands)", ylabel="Units short, average of worst 10%",
+              title="Efficient frontier: bad-case shortfall")
+    ax[0].legend(fontsize=8, loc="lower right")
+    for a in ax:
+        a.grid(alpha=0.3)
+        a.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout()
+    fig.savefig(path, dpi=150)
+    plt.close(fig)
 
 
 if __name__ == "__main__":

@@ -115,3 +115,19 @@ def test_dollar_valuation_is_consistent():
                                                       - ue["conversion_cost_usd"])
     assert S["expected_profit_at_risk_usd"] == pytest.approx(S["expected_shortfall"] * ue["margin_per_unit_usd"])
     assert np.allclose(m["net_benefit_usd"], m["shortfall_avoided"] * ue["margin_per_unit_usd"] - m["cost_usd"])
+
+
+def test_greedy_respects_budget_and_improves():
+    from src import optimize
+    r = run(Inputs(sim=SimConfig(n_sims=300)))
+    sim = r["simulator"]
+    cands = sim.candidate_actions(r["scored"], 6)
+    path = optimize.greedy(sim, cands, budget=200_000, max_steps=6)
+    assert path["cumulative_cost_usd"].iloc[-1] <= 200_000
+    assert (path["expected_shortfall"].diff().dropna() <= 1e-9).all()   # each step helps (mean objective)
+
+
+def test_cvar_is_at_least_mean():
+    from src.optimize import risk_metric
+    x = np.random.default_rng(0).exponential(10, 1000)
+    assert risk_metric(x, "cvar") >= risk_metric(x, "mean")

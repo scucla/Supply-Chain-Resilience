@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from src.pipeline import Inputs, run
+from src.pipeline import Inputs, budget_frontier, run
 from src.simulate import SimConfig
 
 st.set_page_config(page_title="UAS Supply Chain Resilience", layout="wide")
@@ -44,7 +44,7 @@ r = cached_run(start, end, months, shape, sl, cv, tuple(w.items()), n_sims, surg
 S, scored, m = r["sim_summary"], r["scored"], r["mitigations"]
 names = r["parts"].set_index("part_id")["part_name"]
 
-tabs = st.tabs(["Summary", "BOM", "Demand plan", "Risk", "Simulation", "Mitigations"])
+tabs = st.tabs(["Summary", "BOM", "Demand plan", "Risk", "Simulation", "Mitigations", "Budget optimizer"])
 
 # ---------------- summary ----------------
 with tabs[0]:
@@ -174,3 +174,30 @@ with tabs[5]:
                          .head(10).round(1), width="stretch", hide_index=True)
         st.subheader("Bundles (re-simulated together, since benefits are not additive)")
         st.dataframe(pd.DataFrame(r["portfolios"]).drop(columns="actions").round(3), hide_index=True)
+
+# ---------------- budget optimizer ----------------
+with tabs[6]:
+    st.caption("Picks actions one at a time, re-simulating every remaining candidate on top of those already chosen, "
+               "and takes the largest risk reduction per dollar. Re-simulating captures overlaps that a one-shot "
+               "ranking misses.")
+    obj_label = st.radio("Optimize for", ["Average outcome (expected shortfall)",
+                                          "Bad case (average shortfall in the worst 10% of futures)"], horizontal=True)
+    obj = "mean" if obj_label.startswith("Average") else "cvar"
+    if st.button("Run optimizer (about 20 seconds)"):
+        st.session_state["frontier"] = (obj, budget_frontier(r, obj))
+    if "frontier" in st.session_state and st.session_state["frontier"][0] == obj:
+        fr = st.session_state["frontier"][1]
+        g, n = fr["greedy"], fr["naive"]
+        fig = go.Figure([
+            go.Scatter(x=g["cumulative_cost_usd"], y=g["fill_rate"], mode="lines+markers", name="Greedy (re-simulated)",
+                       text=g["action"] + " — " + g["risk_part"]),
+            go.Scatter(x=n["cumulative_cost_usd"], y=n["fill_rate"], mode="lines+markers", name="Naive ranking",
+                       line=dict(dash="dot"), text=n["action"] + " — " + n["risk_part"]),
+        ])
+        fig.update_layout(title="Efficient frontier", xaxis_title="Cumulative mitigation cost ($)",
+                          yaxis_title="Expected fill rate", yaxis_tickformat=".1%")
+        st.plotly_chart(fig, width="stretch")
+        st.subheader("Order in which to fund actions")
+        st.dataframe(g.round(3), width="stretch", hide_index=True)
+        st.subheader("Best set for a fixed budget")
+        st.dataframe(fr["budgets"].round(3), width="stretch", hide_index=True)
