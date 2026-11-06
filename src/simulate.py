@@ -271,13 +271,16 @@ class Simulator:
 
     def monthly_bands(self, res: dict) -> pd.DataFrame:
         built = res["built"]
+        cum = built.cumsum(axis=1)
+        q = lambda a, p: np.percentile(a, p, axis=0)  # noqa: E731
         return pd.DataFrame({
             "month": np.arange(1, len(self.plan) + 1),
             "plan": self.plan,
-            "p05": np.percentile(built, 5, axis=0),
-            "p50": np.percentile(built, 50, axis=0),
-            "mean": built.mean(axis=0),
-            "p95": np.percentile(built, 95, axis=0),
+            "p05": q(built, 5), "p50": q(built, 50), "mean": built.mean(axis=0), "p95": q(built, 95),
+            # cumulative systems delivered vs. cumulative plan
+            "cum_plan": self.plan.cumsum(),
+            "cum_p05": q(cum, 5), "cum_p25": q(cum, 25), "cum_p50": q(cum, 50), "cum_p75": q(cum, 75),
+            "cum_p95": q(cum, 95), "cum_mean": cum.mean(axis=0),
         })
 
     # ---- mitigations --------------------------------------------------------
