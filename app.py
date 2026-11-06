@@ -59,8 +59,9 @@ with tabs[0]:
             f"(95% CI {top['ci95_low']:.0f} to {top['ci95_high']:.0f}) for ~${top['cost_usd']:,.0f}.\n"
             f"- **Top-{best['n']} bundle:** fill rate {S['fill_rate']:.1%} → {best['fill_rate']:.1%} "
             f"for ~${best['cost_usd']:,.0f}.\n"
-            f"- **Compliance:** {int(scored['compliance_flag'].sum())} parts are sourced from a country of concern. "
-            "Review them against applicable sourcing restrictions regardless of the cost-benefit result."
+            f"- **Compliance:** {int(scored['compliance_flag'].sum())} parts are sourced from a country of concern; "
+            f"{int(r['compliance']['finding'].str.startswith('REVIEW').sum())} sit inside a section 848 critical component. "
+            "See the Risk tab."
         )
 
 # ---------------- BOM ----------------
@@ -107,6 +108,9 @@ with tabs[3]:
     st.dataframe(scored[["part_id", "part_name", "tier", "supplier", "supplier_country", "key_material", "hhi",
                          "f_concentration", "f_geopolitical", "f_lead_time", "f_single_source", "risk_score",
                          "risk_tier", "top_driver", "compliance_flag"]].round(3), width="stretch", hide_index=True)
+    st.subheader("Compliance review: covered-country parts (section 848, fiscal-year-2020 defense authorization act)")
+    st.caption("Flags for legal review, not legal conclusions.")
+    st.dataframe(r["compliance"], width="stretch", hide_index=True)
     st.subheader("Material concentration (HHI)")
     st.dataframe(r["materials"].round(3), hide_index=True)
 

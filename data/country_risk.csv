@@ -1,16 +1,16 @@
 country,geo_risk,country_of_concern,rationale
-CHN,0.90,1,Export controls on Ga/Ge/graphite/rare earths; US restrictions on Chinese-origin UAS components
-RUS,1.00,1,Sanctions; not a viable source
-TWN,0.60,0,Concentrated semiconductor capacity; cross-strait conflict tail risk
-KOR,0.25,0,Allied; some regional tail risk
-JPN,0.15,0,Allied; natural-disaster exposure
-MYS,0.35,0,Transshipment and logistics risk
-MEX,0.25,0,USMCA nearshore; border and logistics variability
-DEU,0.10,0,Allied
-CHE,0.10,0,Allied
-USA,0.05,0,Domestic
-CAN,0.05,0,Allied
-CHL,0.30,0,Resource nationalism and policy risk
-PER,0.35,0,Political instability affecting mining
-IND,0.30,0,Moderate
-OTHER,0.40,0,Fragmented or unknown sources; conservative default
+CHN,0.90,1,"Active export-control regime on exactly this bill of materials' inputs: gallium/germanium licensing since Aug 2023; a United States-specific export ban (Dec 2024) suspended only until 27 Nov 2026; licensing on seven medium/heavy rare earths since Apr 2025 (still in force); Oct 2025 package covering more rare earths, lithium batteries and graphite anode material suspended only until 10 Nov 2026; ban on dual-use exports to United States military end users remains in force. Also a covered foreign country under FY2020 National Defense Authorization Act section 848 for drone critical components. Not 1.0 because commercial licences are still being granted."
+RUS,1.00,1,Comprehensive United States sanctions; not a viable source for a defense program.
+TWN,0.60,0,"Holds about two-thirds of advanced chip capacity (TrendForce 2024), so a single shock has no fallback. Low day-to-day disruption risk, but a cross-strait blockade or conflict is a severe tail risk. Scored well below China because there is no export-control regime targeting United States buyers."
+KOR,0.25,0,Treaty ally; reliable supplier. Some regional (North Korea) tail risk.
+JPN,0.15,0,Treaty ally. Main exposure is natural disasters (earthquakes have halted chip and materials plants before).
+MYS,0.35,0,Friendly; scored up for transshipment risk (re-export of Chinese-origin goods complicates traceability).
+MEX,0.25,0,"Free-trade partner under the United States-Mexico-Canada Agreement and near-shore; scored for border, tariff-policy and logistics variability."
+DEU,0.10,0,North Atlantic Treaty Organization ally; stable.
+CHE,0.10,0,Stable; neutral but reliable trade partner.
+USA,0.05,0,Domestic. Not zero: single plants still have fires; strikes and capacity limits.
+CAN,0.05,0,Ally; integrated into the United States defense industrial base.
+CHL,0.30,0,Policy risk (state role in lithium; royalty changes).
+PER,0.35,0,Political instability and mine blockades.
+IND,0.30,0,Friendly; moderate policy and logistics risk.
+OTHER,0.40,0,Fragmented or unknown origin. Deliberately conservative: unknown provenance is itself a risk.

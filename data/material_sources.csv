@@ -1,33 +1,29 @@
-material,country,share,source_note
-ndfeb_magnets,CHN,0.90,Approximate share of sintered NdFeB magnet output; verify against USGS MCS (Rare Earths) and DOE/IEA reports
-ndfeb_magnets,JPN,0.07,
-ndfeb_magnets,OTHER,0.03,
-gallium,CHN,0.98,Approximate primary gallium share; USGS MCS (Gallium)
-gallium,OTHER,0.02,
-germanium,CHN,0.68,Approximate refinery share; USGS MCS (Germanium)
-germanium,OTHER,0.32,
-lithium,CHN,0.65,Approximate refined lithium chemicals share; IEA Critical Minerals Outlook
-lithium,CHL,0.25,
-lithium,OTHER,0.10,
-graphite,CHN,0.93,Approximate battery-grade anode share; IEA / USGS MCS (Graphite)
-graphite,OTHER,0.07,
-carbon_fiber,JPN,0.45,Rough industry estimate of PAN carbon fiber capacity; replace with a cited source
-carbon_fiber,USA,0.20,
-carbon_fiber,CHN,0.15,
-carbon_fiber,KOR,0.10,
-carbon_fiber,OTHER,0.10,
-advanced_logic,TWN,0.90,Approximate share of leading-edge (<10nm) logic capacity; SIA/BCG reports
-advanced_logic,KOR,0.08,
-advanced_logic,OTHER,0.02,
-mature_logic,CHN,0.35,Approximate mature-node (>=28nm) capacity share; SIA/BCG reports
-mature_logic,TWN,0.30,
-mature_logic,OTHER,0.35,
-copper,CHL,0.24,Approximate mine production share; USGS MCS (Copper)
-copper,PER,0.11,
-copper,CHN,0.08,
-copper,OTHER,0.57,
-aluminum,CHN,0.58,Approximate primary aluminum share; USGS MCS (Aluminum)
-aluminum,IND,0.06,
-aluminum,RUS,0.05,
-aluminum,CAN,0.04,
-aluminum,OTHER,0.27,
+material,country,share,basis,source,source_url
+gallium,CHN,0.989,2024 primary low-purity gallium production (839 of 848 tonnes),USGS Mineral Commodity Summaries 2026: Gallium,https://pubs.usgs.gov/periodicals/mcs2026/mcs2026-gallium.pdf
+gallium,RUS,0.007,2024 primary low-purity gallium production (6 of 848 tonnes; estimate),USGS Mineral Commodity Summaries 2026: Gallium,https://pubs.usgs.gov/periodicals/mcs2026/mcs2026-gallium.pdf
+gallium,JPN,0.004,2024 primary low-purity gallium production (3 of 848 tonnes; estimate),USGS Mineral Commodity Summaries 2026: Gallium,https://pubs.usgs.gov/periodicals/mcs2026/mcs2026-gallium.pdf
+germanium,CHN,0.60,Refined germanium production (Project Blue estimate). USGS publishes no country table. Other estimates run 83-94%; 0.60 is the conservative end and is stress-tested in the sensitivity analysis,Project Blue via Compound Semiconductor (Nov 2025),https://compoundsemiconductor.net/article/122926/China_suspends_US_export_ban_on_Ga_and_Ge_and_Sb
+germanium,OTHER,0.40,Remainder: Belgium; Canada; Germany; Russia; United States and others (no reliable split),USGS Mineral Commodity Summaries 2026: Germanium,https://pubs.usgs.gov/periodicals/mcs2026/mcs2026-germanium.pdf
+ndfeb_magnets,CHN,0.94,2024 share of global sintered permanent magnet production,International Energy Agency (China's share in rare earth magnet production 2024),https://www.iea.org/data-and-statistics/charts/china-s-share-in-rare-earth-magnet-production-2024
+ndfeb_magnets,JPN,0.04,ASSUMED split of the 6% non-China remainder; Japan is the largest magnet industry outside China,Assumption,
+ndfeb_magnets,OTHER,0.02,ASSUMED remainder,Assumption,
+graphite,CHN,0.94,2025 share of battery-grade graphite refining,International Energy Agency Global Critical Minerals Outlook 2026 (summarized by Bank of Finland BOFIT),https://www.bofit.fi/en/monitoring/weekly/2026/vw202632_2/
+graphite,OTHER,0.06,Remainder,International Energy Agency Global Critical Minerals Outlook 2026,https://www.bofit.fi/en/monitoring/weekly/2026/vw202632_2/
+lithium,CHN,0.74,2025 share of refined lithium,International Energy Agency Global Critical Minerals Outlook 2026 (summarized by Bank of Finland BOFIT),https://www.bofit.fi/en/monitoring/weekly/2026/vw202632_2/
+lithium,OTHER,0.26,Remainder (no reliable split),International Energy Agency Global Critical Minerals Outlook 2026,https://www.bofit.fi/en/monitoring/weekly/2026/vw202632_2/
+copper,CHN,0.47,2025 share of refined copper. Refined (not mined) copper is what goes into wire and circuit-board foil,International Energy Agency Global Critical Minerals Outlook 2026 (summarized by Bank of Finland BOFIT),https://www.bofit.fi/en/monitoring/weekly/2026/vw202632_2/
+copper,OTHER,0.53,Remainder,International Energy Agency Global Critical Minerals Outlook 2026,https://www.bofit.fi/en/monitoring/weekly/2026/vw202632_2/
+aluminum,CHN,0.60,2024 primary smelter production (about 43 of 72 million tonnes),USGS Mineral Commodity Summaries 2025 (via Nasdaq/Investing News summary),https://www.nasdaq.com/articles/top-10-aluminum-producing-countries
+aluminum,IND,0.06,2023 primary smelter production,USGS Mineral Commodity Summaries 2024 (via Visual Capitalist),https://www.visualcapitalist.com/aluminum-smelter-production-by-country/
+aluminum,RUS,0.05,2023 primary smelter production,USGS Mineral Commodity Summaries 2024 (via Visual Capitalist),https://www.visualcapitalist.com/aluminum-smelter-production-by-country/
+aluminum,CAN,0.04,2023 primary smelter production,USGS Mineral Commodity Summaries 2024 (via Visual Capitalist),https://www.visualcapitalist.com/aluminum-smelter-production-by-country/
+aluminum,OTHER,0.25,Remainder,Derived,
+carbon_fiber,CHN,0.46,China 2023 capacity (120.2 thousand tonnes) / 2024 global installed capacity (about 263 thousand tonnes). Overstates exposure for aerospace-grade fiber where Chinese suppliers are not qualified,Yicai Global (2024); industry capacity report via Scotts International,https://yicaiglobal.com/star50news/2024_04_116678981368770199555
+carbon_fiber,OTHER,0.54,Remainder: Japan (Toray; Teijin; Mitsubishi Chemical); United States; South Korea; Europe (no reliable country split),Derived,
+advanced_logic,TWN,0.66,2024 share of foundry capacity at 16/14 nanometers and below,TrendForce (May 2024),https://www.trendforce.com/news/2024/05/14/insights-trendforce-foundry-capacity-market-share-of-advanced-process-to-decline-in-taiwan-korea-until-2027-while-us-on-the-rise/
+advanced_logic,KOR,0.11,2024 share of foundry capacity at 16/14 nanometers and below,TrendForce (May 2024),https://www.trendforce.com/news/2024/05/14/insights-trendforce-foundry-capacity-market-share-of-advanced-process-to-decline-in-taiwan-korea-until-2027-while-us-on-the-rise/
+advanced_logic,USA,0.10,2024 share of foundry capacity at 16/14 nanometers and below,TrendForce (May 2024),https://www.trendforce.com/news/2024/05/14/insights-trendforce-foundry-capacity-market-share-of-advanced-process-to-decline-in-taiwan-korea-until-2027-while-us-on-the-rise/
+advanced_logic,CHN,0.09,2024 share of foundry capacity at 16/14 nanometers and below,TrendForce (May 2024),https://www.trendforce.com/news/2024/05/14/insights-trendforce-foundry-capacity-market-share-of-advanced-process-to-decline-in-taiwan-korea-until-2027-while-us-on-the-rise/
+advanced_logic,OTHER,0.04,Remainder,Derived,
+mature_logic,CHN,0.33,2024 share of mature-node (28 nanometers and above) foundry capacity,TrendForce (May 2024); Moody's (Sept 2025) also puts China at about one-third,https://www.semimedia.cc/asia-controls-75-of-global-chip-capacity-set-to-keep-lead-in-next-five-years/
+mature_logic,OTHER,0.67,Remainder: Taiwan; South Korea; United States; Japan; Europe (no reliable split),Derived,

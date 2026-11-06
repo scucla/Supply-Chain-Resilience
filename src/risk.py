@@ -34,7 +34,7 @@ def material_metrics(materials: pd.DataFrame, countries: pd.DataFrame) -> pd.Dat
         named = g[g["country"] != "OTHER"]
         hhi = float((named["share"] ** 2).sum())
         geo = float((g["share"] * g["country"].map(risk)).sum() / g["share"].sum())
-        top = g.sort_values("share", ascending=False).iloc[0]
+        top = (named if len(named) else g).sort_values("share", ascending=False).iloc[0]
         rows.append({"material": mat, "hhi": hhi, "material_geo_risk": geo,
                      "top_country": top["country"], "top_share": top["share"]})
     return pd.DataFrame(rows)
@@ -90,3 +90,37 @@ def disruption_params(scored: pd.DataFrame) -> pd.DataFrame:
     sd = scored["lead_time_sd_wks"].clip(lower=1e-6).to_numpy()
     out["slip_p"] = 1 - np.vectorize(NormalDist().cdf)((52 / 12) / sd)
     return out
+
+
+def compliance_review(exploded: pd.DataFrame, countries: pd.DataFrame) -> pd.DataFrame:
+    """Flag country-of-concern parts that sit inside a 'critical component' named in
+    section 848 of the fiscal-year-2020 National Defense Authorization Act (flight
+    controllers, radios, data transmission devices, cameras, gimbals).
+
+    Section 848 bars the Defense Department from buying drones whose critical
+    components are MANUFACTURED in China. A Chinese sub-part inside a United
+    States-made component is not automatically covered, so these are flags for
+    legal review, not verdicts.
+    """
+    concern = set(countries.loc[countries["country_of_concern"] == 1, "country"])
+    parent = dict(zip(exploded["part_id"], exploded["parent_id"]))
+    cat = dict(zip(exploded["part_id"], exploded.get("ndaa_848_category", pd.Series(dtype=str)).fillna("")))
+    rows = []
+    for _, p in exploded.iterrows():
+        if p["supplier_country"] not in concern:
+            continue
+        cur, chain = p["part_id"], []
+        while cur:
+            if cat.get(cur):
+                chain.append((cur, cat[cur]))
+            cur = parent.get(cur, "")
+        for comp, c in chain:
+            level = "HIGH: component itself made in a covered country" if comp == p["part_id"] \
+                else "REVIEW: covered-country sub-part inside a critical component"
+            rows.append({"part_id": p["part_id"], "part_name": p["part_name"], "supplier_country": p["supplier_country"],
+                         "inside_component": comp, "section_848_category": c, "finding": level})
+        if not chain:
+            rows.append({"part_id": p["part_id"], "part_name": p["part_name"], "supplier_country": p["supplier_country"],
+                         "inside_component": "", "section_848_category": "",
+                         "finding": "WATCH: covered-country source outside section 848 critical components"})
+    return pd.DataFrame(rows)

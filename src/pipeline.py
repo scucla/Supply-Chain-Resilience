@@ -47,6 +47,7 @@ def run(inp: Inputs | None = None, with_mitigations: bool = True) -> dict:
         "exploded": exploded, "parts": parts, "plan": plan, "requirements": reqs,
         "safety_stock": ss, "orders": orders, "scored": scored, "params": params,
         "materials": risk.material_metrics(materials, countries),
+        "compliance": risk.compliance_review(exploded, countries),
         "sim_summary": sim.summarize(base), "bands": sim.monthly_bands(base),
         "attribution": sim.binding_attribution(base), "shortfall_dist": pd.Series(base["shortfall"]),
     }

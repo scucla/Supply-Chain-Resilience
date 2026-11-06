@@ -42,6 +42,9 @@ def main() -> None:
         print(f"  top {pf['n']}: fill rate {base_fill:.1%} -> {pf['fill_rate']:.1%}, "
               f"E[shortfall] {r['sim_summary']['expected_shortfall']:.0f} -> {pf['expected_shortfall']:.0f}, cost ${pf['cost_usd']:,.0f}")
 
+    print("\n== Compliance review (section 848) ==")
+    print(r["compliance"][["part_id", "supplier_country", "inside_component", "finding"]].to_string(index=False))
+
     print("\n== Order-now list (release month <= 0) ==")
     late = r["orders"][r["orders"]["status"] != "planned"]
     print(late.groupby("part_id")["qty"].sum().sort_values(ascending=False).head(10).to_string())
