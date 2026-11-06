@@ -1,2 +1,2 @@
 date,news_ratio,rulemaking_recent_30d,rulemaking_baseline_30d,rulemaking_ratio,news_and_rules_multiplier,calendar_multiplier,total_multiplier,adjusted_p_month,errors
-2026-11-06,,0.0,1.0,0.0,1.0,2.0,2.0,0.04,URLError
+2026-11-06,,0.0,0.6666666666666667,0.0,1.0,2.0,2.0,0.04,HTTPError: HTTP Error 429: Too Many Requests
